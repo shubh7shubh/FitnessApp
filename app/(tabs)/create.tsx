@@ -3,7 +3,7 @@ import { styles } from "@/styles/create.styles";
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   ScrollView,
   TextInput,
+  Keyboard,
+  Dimensions,
 } from "react-native";
 
 import { Image } from "expo-image";
@@ -28,21 +30,54 @@ export default function CreateScreen() {
   const { user } = useUser();
 
   const [caption, setCaption] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<
+    string | null
+  >(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Handle keyboard events for better Android support
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      (event) => {
+        if (Platform.OS === "android") {
+          setKeyboardHeight(event.endCoordinates.height);
+        }
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        if (Platform.OS === "android") {
+          setKeyboardHeight(0);
+        }
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+    const result =
+      await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    if (!result.canceled) setSelectedImage(result.assets[0].uri);
+    if (!result.canceled)
+      setSelectedImage(result.assets[0].uri);
   };
 
-  const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
+  const generateUploadUrl = useMutation(
+    api.posts.generateUploadUrl
+  );
   const createPost = useMutation(api.posts.createPost);
 
   const handleShare = async () => {
@@ -52,13 +87,19 @@ export default function CreateScreen() {
       setIsSharing(true);
       const uploadUrl = await generateUploadUrl();
 
-      const uploadResult = await FileSystem.uploadAsync(uploadUrl, selectedImage, {
-        httpMethod: "POST",
-        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        mimeType: "image/jpeg",
-      });
+      const uploadResult = await FileSystem.uploadAsync(
+        uploadUrl,
+        selectedImage,
+        {
+          httpMethod: "POST",
+          uploadType:
+            FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          mimeType: "image/jpeg",
+        }
+      );
 
-      if (uploadResult.status !== 200) throw new Error("Upload failed");
+      if (uploadResult.status !== 200)
+        throw new Error("Upload failed");
 
       const { storageId } = JSON.parse(uploadResult.body);
       await createPost({ storageId, caption });
@@ -79,15 +120,28 @@ export default function CreateScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={28} color={COLORS.primary} />
+            <Ionicons
+              name="arrow-back"
+              size={28}
+              color={COLORS.primary}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Post</Text>
           <View style={{ width: 28 }} />
         </View>
 
-        <TouchableOpacity style={styles.emptyImageContainer} onPress={pickImage}>
-          <Ionicons name="image-outline" size={48} color={COLORS.grey} />
-          <Text style={styles.emptyImageText}>Tap to select an image</Text>
+        <TouchableOpacity
+          style={styles.emptyImageContainer}
+          onPress={pickImage}
+        >
+          <Ionicons
+            name="image-outline"
+            size={48}
+            color={COLORS.grey}
+          />
+          <Text style={styles.emptyImageText}>
+            Tap to select an image
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -95,9 +149,19 @@ export default function CreateScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      behavior={
+        Platform.OS === "ios" ? "padding" : "height"
+      }
+      style={[
+        styles.container,
+        Platform.OS === "android" &&
+          keyboardHeight > 0 && {
+            paddingBottom: keyboardHeight - 50, // Adjust this value as needed
+          },
+      ]}
+      keyboardVerticalOffset={
+        Platform.OS === "ios" ? 88 : 0
+      }
     >
       <View style={styles.contentContainer}>
         {/* HEADER */}
@@ -117,12 +181,18 @@ export default function CreateScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Post</Text>
           <TouchableOpacity
-            style={[styles.shareButton, isSharing && styles.shareButtonDisabled]}
+            style={[
+              styles.shareButton,
+              isSharing && styles.shareButtonDisabled,
+            ]}
             disabled={isSharing || !selectedImage}
             onPress={handleShare}
           >
             {isSharing ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+              />
             ) : (
               <Text style={styles.shareText}>Share</Text>
             )}
@@ -130,12 +200,24 @@ export default function CreateScreen() {
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            Platform.OS === "android" &&
+              keyboardHeight > 0 && {
+                paddingBottom: keyboardHeight + 20,
+              },
+          ]}
           bounces={false}
           keyboardShouldPersistTaps="handled"
-          contentOffset={{ x: 0, y: 100 }}
+          showsVerticalScrollIndicator={false}
+          // Remove the fixed contentOffset to allow natural scrolling
         >
-          <View style={[styles.content, isSharing && styles.contentDisabled]}>
+          <View
+            style={[
+              styles.content,
+              isSharing && styles.contentDisabled,
+            ]}
+          >
             {/* IMAGE SECTION */}
             <View style={styles.imageSection}>
               <Image
@@ -149,8 +231,14 @@ export default function CreateScreen() {
                 onPress={pickImage}
                 disabled={isSharing}
               >
-                <Ionicons name="image-outline" size={20} color={COLORS.white} />
-                <Text style={styles.changeImageText}>Change</Text>
+                <Ionicons
+                  name="image-outline"
+                  size={20}
+                  color={COLORS.white}
+                />
+                <Text style={styles.changeImageText}>
+                  Change
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -171,6 +259,8 @@ export default function CreateScreen() {
                   value={caption}
                   onChangeText={setCaption}
                   editable={!isSharing}
+                  textAlignVertical="top" // Ensures text starts at top for Android
+                  scrollEnabled={false} // Let the parent ScrollView handle scrolling
                 />
               </View>
             </View>

@@ -1,5 +1,9 @@
 // styles/create.styles.ts
-import { StyleSheet, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  Dimensions,
+  Platform,
+} from "react-native";
 import { COLORS } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -109,6 +113,7 @@ export const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     paddingTop: 8,
-    minHeight: 40,
+    minHeight: Platform.OS === "android" ? 100 : 80,
+    maxHeight: 200,
   },
 });
