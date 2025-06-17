@@ -1,7 +1,3 @@
-import { COLORS } from "@/constants/theme";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { styles } from "@/styles/feed.styles";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
@@ -17,6 +13,8 @@ import {
 } from "react-native";
 import { Loader } from "./Loader";
 import Comment from "./Comment";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 
 type CommentsModal = {
   postId: Id<"posts">;
@@ -24,7 +22,11 @@ type CommentsModal = {
   onClose: () => void;
 };
 
-export default function CommentsModal({ onClose, postId, visible }: CommentsModal) {
+export default function CommentsModal({
+  onClose,
+  postId,
+  visible,
+}: CommentsModal) {
   const [newComment, setNewComment] = useState("");
   const comments = useQuery(api.comments.getComments, { postId });
   const addComment = useMutation(api.comments.addComment);
@@ -45,17 +47,22 @@ export default function CommentsModal({ onClose, postId, visible }: CommentsModa
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalContainer}
+        className="flex-1 bg-background mt-[44px] ios:mb-[44px]"
       >
-        <View style={styles.modalHeader}>
+        <View className="flex-row justify-between items-center px-4 h-14 border-b border-surface">
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.white} />
+            <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Comments</Text>
-          <View style={{ width: 24 }} />
+          <Text className="text-white text-base font-semibold">Comments</Text>
+          <View className="w-6" />
         </View>
 
         {comments === undefined ? (
@@ -65,22 +72,25 @@ export default function CommentsModal({ onClose, postId, visible }: CommentsModa
             data={comments}
             keyExtractor={(item) => item._id}
             renderItem={({ item }) => <Comment comment={item} />}
-            contentContainerStyle={styles.commentsList}
+            className="flex-1"
           />
         )}
 
-        <View style={styles.commentInput}>
+        <View className="flex-row items-center px-4 py-3 border-t border-surface bg-background">
           <TextInput
-            style={styles.input}
+            className="flex-1 text-white py-2 px-4 mr-3 bg-surface rounded-full text-sm"
             placeholder="Add a comment..."
-            placeholderTextColor={COLORS.grey}
+            placeholderTextColor="#9CA3AF"
             value={newComment}
             onChangeText={setNewComment}
             multiline
           />
 
-          <TouchableOpacity onPress={handleAddComment} disabled={!newComment.trim()}>
-            <Text style={[styles.postButton, !newComment.trim() && styles.postButtonDisabled]}>
+          <TouchableOpacity
+            onPress={handleAddComment}
+            disabled={!newComment.trim()}
+          >
+            <Text className="text-primary font-semibold text-sm disabled:opacity-50">
               Post
             </Text>
           </TouchableOpacity>

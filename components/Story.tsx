@@ -1,5 +1,5 @@
-import { styles } from "@/styles/feed.styles";
 import { View, Text, Image, TouchableOpacity } from "react-native";
+import cn from "classnames";
 
 type Story = {
   id: string;
@@ -10,11 +10,19 @@ type Story = {
 
 export default function Story({ story }: { story: Story }) {
   return (
-    <TouchableOpacity style={styles.storyWrapper}>
-      <View style={[styles.storyRing, !story.hasStory && styles.noStory]}>
-        <Image source={{ uri: story.avatar }} style={styles.storyAvatar} />
+    <TouchableOpacity className="items-center mx-2 w-[72px]">
+      <View
+        className={cn(
+          "w-[68px] h-[68px] rounded-full p-0.5 bg-background border-2 mb-1",
+          story.hasStory ? "border-primary" : "border-grey"
+        )}
+      >
+        <Image
+          source={{ uri: story.avatar }}
+          className="w-[60px] h-[60px] rounded-full border-2 border-background"
+        />
       </View>
-      <Text style={styles.storyUsername}>{story.username}</Text>
+      <Text className="text-xs text-white text-center">{story.username}</Text>
     </TouchableOpacity>
   );
 }

@@ -1,7 +1,6 @@
 import { Loader } from "@/components/Loader";
 import Post from "@/components/Post";
 import StoriesSection from "@/components/Stories";
-import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { styles } from "../../styles/feed.styles";
 import { useState } from "react";
 
 export default function Index() {
@@ -34,12 +32,14 @@ export default function Index() {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background">
       {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>fitness</Text>
+      <View className="flex-row justify-between items-center px-4 py-3 border-b border-surface">
+        <Text className="text-2xl font-jetbrains-mono text-primary">
+          fitness
+        </Text>
         <TouchableOpacity onPress={() => signOut()}>
-          <Ionicons name="log-out-outline" size={24} color={COLORS.white} />
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -54,7 +54,7 @@ export default function Index() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
+            tintColor="#4ADE80"
           />
         }
       />
@@ -63,14 +63,7 @@ export default function Index() {
 }
 
 const NoPostsFound = () => (
-  <View
-    style={{
-      flex: 1,
-      backgroundColor: COLORS.background,
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <Text style={{ fontSize: 20, color: COLORS.primary }}>No posts yet</Text>
+  <View className="flex-1 bg-background justify-center items-center">
+    <Text className="text-xl text-primary">No posts yet</Text>
   </View>
 );
