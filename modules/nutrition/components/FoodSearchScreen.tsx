@@ -121,7 +121,7 @@ export const FoodSearchScreen: React.FC = () => {
             {/* Meal Type Selector */}
             <TouchableOpacity
               onPress={toggleDropdown}
-              className="flex-row items-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+              className="flex-row items-center px-4 py-2 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
             >
               <Ionicons
                 name={selectedMeal?.icon || "sunny-outline"}
@@ -129,7 +129,7 @@ export const FoodSearchScreen: React.FC = () => {
                 color="#4ADE80"
                 className="mr-2"
               />
-              <Text className="text-base font-medium text-gray-900 dark:text-white mx-2">
+              <Text className="text-xl font-medium text-gray-900 dark:text-white mx-2">
                 {selectedMeal?.label}
               </Text>
               <Ionicons

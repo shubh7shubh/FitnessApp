@@ -18,6 +18,7 @@ import { PlansBanner } from "@/modules/home/components/PlansBanner";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 import { useHomeStore } from "@/modules/home/store/homeStore";
 import { Loader } from "@/components/Loader";
+import { QuickLogModal } from "@/modules/nutrition";
 
 // --- 1. ADD THESE IMPORTS ---
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
@@ -30,6 +31,8 @@ export default function Index(): JSX.Element {
   const { colors } = useTheme();
   const { refreshData, isLoading } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] =
+    useState(false);
 
   // --- 2. ADD THIS LOGIC TO FETCH PRODUCT DATA ---
   const { fetchProducts } = useProductsStore();
@@ -49,6 +52,33 @@ export default function Index(): JSX.Element {
   };
 
   if (isLoading) return <Loader />;
+
+  const quickActions = [
+    {
+      icon: "restaurant",
+      label: "Log Food",
+      color: colors.primary,
+      onPress: () => router.push("/nutrition/search"),
+    },
+    {
+      icon: "fitness",
+      label: "Exercise",
+      color: "#EC4899",
+      onPress: () => setShowQuickLogModal(true),
+    },
+    {
+      icon: "water",
+      label: "Water",
+      color: "#06B6D4",
+      onPress: () => setShowQuickLogModal(true),
+    },
+    {
+      icon: "analytics",
+      label: "Progress",
+      color: "#8B5CF6",
+      onPress: () => setShowQuickLogModal(true),
+    },
+  ];
 
   return (
     <View
@@ -139,30 +169,10 @@ export default function Index(): JSX.Element {
           </Text>
 
           <View className="flex-row justify-between">
-            {[
-              {
-                icon: "restaurant",
-                label: "Log Food",
-                color: colors.primary,
-              },
-              {
-                icon: "fitness",
-                label: "Exercise",
-                color: "#EC4899",
-              },
-              {
-                icon: "water",
-                label: "Water",
-                color: "#06B6D4",
-              },
-              {
-                icon: "analytics",
-                label: "Progress",
-                color: "#8B5CF6",
-              },
-            ].map((action, index) => (
+            {quickActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
+                onPress={action.onPress}
                 className="items-center p-4 rounded-2xl flex-1 mx-1"
                 style={{ backgroundColor: colors.surface }}
               >
@@ -195,6 +205,12 @@ export default function Index(): JSX.Element {
         {/* Add some bottom padding for tab bar */}
         <View className="pb-20" />
       </ScrollView>
+
+      {/* Quick Log Modal */}
+      <QuickLogModal
+        visible={showQuickLogModal}
+        onClose={() => setShowQuickLogModal(false)}
+      />
     </View>
   );
 }

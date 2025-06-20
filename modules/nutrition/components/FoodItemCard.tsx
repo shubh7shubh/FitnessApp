@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FoodItem } from "../types";
 
@@ -44,11 +39,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
           </Text>
           {food.isVerified && (
             <View className="ml-2 w-4 h-4 bg-green-500 rounded-full items-center justify-center">
-              <Ionicons
-                name="checkmark"
-                size={10}
-                color="white"
-              />
+              <Ionicons name="checkmark" size={10} color="white" />
             </View>
           )}
         </View>
@@ -61,8 +52,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
 
         <View className="flex-row items-center">
           <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {food.calories} cal • {food.servingSize}{" "}
-            {food.servingUnit}
+            {food.calories} cal • {food.servingSize} {food.servingUnit}
           </Text>
         </View>
       </View>
