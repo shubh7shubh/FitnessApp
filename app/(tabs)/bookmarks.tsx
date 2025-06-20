@@ -1,7 +1,5 @@
 import { Loader } from "@/components/Loader";
-import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
-import { styles } from "@/styles/feed.styles";
 import { useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { View, Text, ScrollView } from "react-native";
@@ -13,9 +11,11 @@ export default function Bookmarks() {
   if (bookmarkedPosts.length === 0) return <NoBookmarksFound />;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bookmarks</Text>
+    <View className="flex-1 bg-background">
+      <View className="flex-row justify-between items-center px-4 py-3 border-b border-surface">
+        <Text className="text-2xl font-jetbrains-mono text-primary">
+          Bookmarks
+        </Text>
       </View>
 
       {/* POSTS */}
@@ -29,10 +29,10 @@ export default function Bookmarks() {
         {bookmarkedPosts.map((post) => {
           if (!post) return null;
           return (
-            <View key={post._id} style={{ width: "33.33%", padding: 1 }}>
+            <View key={post._id} className="w-1/3 p-px">
               <Image
-                source={post.imageUrl}
-                style={{ width: "100%", aspectRatio: 1 }}
+                source={{ uri: post.imageUrl }}
+                className="w-full aspect-square"
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"
@@ -47,15 +47,8 @@ export default function Bookmarks() {
 
 function NoBookmarksFound() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: COLORS.background,
-      }}
-    >
-      <Text style={{ color: COLORS.primary, fontSize: 22 }}>No bookmarked posts yet</Text>
+    <View className="flex-1 justify-center items-center bg-background">
+      <Text className="text-primary text-2xl">No bookmarked posts yet</Text>
     </View>
   );
 }

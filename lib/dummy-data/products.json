@@ -1,0 +1,146 @@
+[
+  {
+    "id": "prod_1",
+    "name": "FitNext Hyper-Whey",
+    "tagline": "Engineered Exclusively for FitNext Members.",
+    "description": "Our proprietary Hyper-Whey blend is cold-processed and ultra-filtered to deliver 25g of the purest protein available. Unlike mass-market brands, we skip the artificial sweeteners and fillers, giving you a clean, fast-absorbing protein to maximize recovery and muscle synthesis. This formula isn't available in any store.",
+    "price": 49.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+    "rating": 4.8,
+    "reviews": 342,
+    "category": "Supplements",
+    "features": [
+      "25g of Pure Whey Isolate per serving",
+      "Zero added sugars or fillers",
+      "Enhanced with 5g of BCAAs",
+      "Exclusive 'Vanilla Velocity' flavor"
+    ]
+  },
+  {
+    "id": "prod_2",
+    "name": "Kinetic Pre-Workout",
+    "tagline": "Unlock Your True Potential. The FitNext Way.",
+    "description": "Tired of pre-workouts that give you jitters and a crash? Kinetic is scientifically formulated for smooth, sustained energy and laser-like focus. We sourced patented ingredients to boost nitric oxide production and enhance mind-muscle connection, helping you push past your limits safely. You won't find this balanced formula anywhere else.",
+    "price": 39.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1576468475360-3048d26639f9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGVuZXJneSUyMGRyaW5rJTIwZm9yJTIwZ3ltfGVufDB8fDB8fHww",
+    "rating": 4.6,
+    "reviews": 187,
+    "category": "Supplements",
+    "features": [
+      "200mg of natural caffeine",
+      "Patented 'FocusFlow' nootropic blend",
+      "No-crash, no-jitters formula",
+      "Exclusive 'Electric Mango' flavor"
+    ]
+  },
+  {
+    "id": "prod_3",
+    "name": "Unity Smart Bottle",
+    "tagline": "The Only Bottle That Syncs With Your Journey.",
+    "description": "This isn't just a water bottle. The Unity Smart Bottle syncs directly with the FitNext app to track your hydration in real-time. A subtle glow reminds you when it's time to drink. Crafted from vacuum-insulated stainless steel, it keeps your drinks cold for 24 hours. A FitNext exclusive innovation.",
+    "price": 79.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1695793303287-d5f4005ed721?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8c21hcnQlMjBib3R0bGVzfGVufDB8fDB8fHww",
+    "rating": 4.9,
+    "reviews": 89,
+    "category": "Accessories",
+    "features": [
+      "Bluetooth App-Sync Technology",
+      "24-Hour Cold Insulation",
+      "BPA-Free Stainless Steel",
+      "Customizable Glow Reminders"
+    ]
+  },
+  {
+    "id": "prod_4",
+    "name": "FlexForce Resistance Bands",
+    "tagline": "Your Gym. Anywhere. Anytime.",
+    "description": "Transform any space into your personal gym with our premium resistance band set. Each band is crafted from natural latex with reinforced safety sleeves and comfortable handles. With 5 resistance levels, you can target every muscle group and get a full-body workout whether you're at home, traveling, or outdoors.",
+    "price": 34.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzaXN0YW5jZSUyMGJhbmRzfGVufDB8fDB8fHww",
+    "rating": 4.7,
+    "reviews": 256,
+    "category": "Equipment",
+    "features": [
+      "5 resistance levels (10-50lbs)",
+      "Anti-snap safety sleeves",
+      "Ergonomic foam handles",
+      "Includes door anchor & carry bag"
+    ]
+  },
+  {
+    "id": "prod_5",
+    "name": "Peak Performance Creatine",
+    "tagline": "Amplify Your Strength. Maximize Your Gains.",
+    "description": "Our ultra-pure creatine monohydrate is micronized for superior absorption and mixability. Clinically proven to increase strength, power, and muscle mass when combined with resistance training. Each serving delivers 5g of the highest quality creatine with zero fillers or artificial ingredients.",
+    "price": 24.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1724160167551-2ffc3d7ca809?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "rating": 4.8,
+    "reviews": 423,
+    "category": "Supplements",
+    "features": [
+      "5g Pure Creatine Monohydrate",
+      "Micronized for better absorption",
+      "Unflavored - mixes with anything",
+      "60 servings per container"
+    ]
+  },
+  {
+    "id": "prod_6",
+    "name": "Elite Yoga Mat",
+    "tagline": "Find Your Balance. Find Your Center.",
+    "description": "Designed for serious practitioners, our premium yoga mat offers superior grip and cushioning. Made from eco-friendly TPE material, it's non-toxic, lightweight, and provides excellent traction even during the most intense sessions. The perfect foundation for your mindfulness practice.",
+    "price": 59.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+    "rating": 4.6,
+    "reviews": 134,
+    "category": "Equipment",
+    "features": [
+      "6mm thick for optimal cushioning",
+      "Non-slip textured surface",
+      "Eco-friendly TPE material",
+      "Includes carrying strap"
+    ]
+  },
+  {
+    "id": "prod_7",
+    "name": "Hydro BCAA Recovery",
+    "tagline": "Recover Faster. Train Harder.",
+    "description": "Our advanced BCAA formula combines essential amino acids with electrolytes for optimal hydration and recovery. Perfect for intra-workout fuel or post-training recovery, this refreshing drink helps reduce muscle fatigue and accelerates recovery between sessions.",
+    "price": 32.99,
+    "currency": "USD",
+    "imageUrl": "https://media.istockphoto.com/id/177219862/photo/bcaa-amino-acids.webp?a=1&b=1&s=612x612&w=0&k=20&c=qtX5VRcL1kpc6koSYEBW4T1-PVIOvIXivadq4B7VJt4=",
+    "rating": 4.5,
+    "reviews": 198,
+    "category": "Supplements",
+    "features": [
+      "2:1:1 BCAA ratio (7g per serving)",
+      "Added electrolytes for hydration",
+      "Zero sugar, zero calories",
+      "Tropical Punch flavor"
+    ]
+  },
+  {
+    "id": "prod_8",
+    "name": "PowerGrip Lifting Gloves",
+    "tagline": "Grip It. Lift It. Crush It.",
+    "description": "Engineered for serious lifters, these premium gloves feature reinforced palms and superior grip technology. The breathable mesh back keeps your hands cool while the adjustable wrist wrap provides optimal support during heavy lifts. Train longer and lift heavier with confidence.",
+    "price": 22.99,
+    "currency": "USD",
+    "imageUrl": "https://images.unsplash.com/photo-1557127972-1c446ea89ea5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cG93ZXIlMjBsaWZ0aW5nJTIwZ2xvdmVzfGVufDB8fDB8fHww",
+    "rating": 4.4,
+    "reviews": 312,
+    "category": "Accessories",
+    "features": [
+      "Reinforced synthetic leather palms",
+      "Breathable mesh construction",
+      "Adjustable wrist wrap",
+      "Available in 4 sizes"
+    ]
+  }
+]
