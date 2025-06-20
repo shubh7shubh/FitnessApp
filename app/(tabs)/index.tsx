@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // <-- Added useEffect
 import {
   FlatList,
   RefreshControl,
@@ -14,9 +14,14 @@ import { useRouter } from "expo-router";
 
 // Import from our new modular structure
 import { HeroSection } from "@/modules/home/components/HeroSection";
+import { PlansBanner } from "@/modules/home/components/PlansBanner";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 import { useHomeStore } from "@/modules/home/store/homeStore";
 import { Loader } from "@/components/Loader";
+
+// --- 1. ADD THESE IMPORTS ---
+import { useProductsStore } from "@/modules/products/store/useProductsStore";
+import ProductsSection from "@/modules/products/components/ProductsSection";
 
 export default function Index(): JSX.Element {
   const { signOut } = useAuth();
@@ -25,6 +30,13 @@ export default function Index(): JSX.Element {
   const { colors } = useTheme();
   const { refreshData, isLoading } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
+
+  // --- 2. ADD THIS LOGIC TO FETCH PRODUCT DATA ---
+  const { fetchProducts } = useProductsStore();
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const onRefresh = async (): Promise<void> => {
     setRefreshing(true);
@@ -39,10 +51,13 @@ export default function Index(): JSX.Element {
   if (isLoading) return <Loader />;
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <View
+      className="flex-1"
+      style={{ backgroundColor: colors.background }}
+    >
       {/* HEADER */}
       <View
-        className="flex-row justify-between items-center px-4 py-3 pt-8"
+        className="flex-row justify-between items-center px-6 py-4 pt-3"
         style={{
           backgroundColor: colors.surface,
           borderBottomWidth: 1,
@@ -56,7 +71,10 @@ export default function Index(): JSX.Element {
           >
             FitNext
           </Text>
-          <Text className="text-sm" style={{ color: colors.text.secondary }}>
+          <Text
+            className="text-sm"
+            style={{ color: colors.text.secondary }}
+          >
             Your fitness journey
           </Text>
         </View>
@@ -64,10 +82,10 @@ export default function Index(): JSX.Element {
         {/* Profile Picture */}
         <TouchableOpacity
           onPress={handleProfilePress}
-          className="w-10 h-10 rounded-full overflow-hidden"
+          className="w-12 h-12 rounded-full overflow-hidden"
           style={{
             backgroundColor: colors.surface,
-            borderWidth: 2,
+            borderWidth: 1,
             borderColor: colors.primary,
           }}
         >
@@ -80,9 +98,15 @@ export default function Index(): JSX.Element {
           ) : (
             <View
               className="w-full h-full items-center justify-center"
-              style={{ backgroundColor: colors.primary + "20" }}
+              style={{
+                backgroundColor: colors.primary + "20",
+              }}
             >
-              <Ionicons name="person" size={20} color={colors.primary} />
+              <Ionicons
+                name="person"
+                size={20}
+                color={colors.primary}
+              />
             </View>
           )}
         </TouchableOpacity>
@@ -102,10 +126,13 @@ export default function Index(): JSX.Element {
         {/* HERO SECTION */}
         <HeroSection />
 
+        {/* PLANS BANNER */}
+        <PlansBanner />
+
         {/* QUICK ACTIONS */}
-        <View className="px-4 py-6">
+        <View className="px-4 py-2">
           <Text
-            className="text-lg font-semibold mb-4"
+            className="text-lg font-semibold mb-3"
             style={{ color: colors.text.primary }}
           >
             Quick Actions
@@ -113,10 +140,26 @@ export default function Index(): JSX.Element {
 
           <View className="flex-row justify-between">
             {[
-              { icon: "restaurant", label: "Log Food", color: colors.primary },
-              { icon: "fitness", label: "Exercise", color: "#EC4899" },
-              { icon: "water", label: "Water", color: "#06B6D4" },
-              { icon: "analytics", label: "Progress", color: "#8B5CF6" },
+              {
+                icon: "restaurant",
+                label: "Log Food",
+                color: colors.primary,
+              },
+              {
+                icon: "fitness",
+                label: "Exercise",
+                color: "#EC4899",
+              },
+              {
+                icon: "water",
+                label: "Water",
+                color: "#06B6D4",
+              },
+              {
+                icon: "analytics",
+                label: "Progress",
+                color: "#8B5CF6",
+              },
             ].map((action, index) => (
               <TouchableOpacity
                 key={index}
@@ -125,7 +168,9 @@ export default function Index(): JSX.Element {
               >
                 <View
                   className="w-12 h-12 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: action.color + "20" }}
+                  style={{
+                    backgroundColor: action.color + "20",
+                  }}
                 >
                   <Ionicons
                     name={action.icon as any}
@@ -143,6 +188,9 @@ export default function Index(): JSX.Element {
             ))}
           </View>
         </View>
+
+        {/* --- 3. ADD THE PRODUCTS SECTION HERE --- */}
+        <ProductsSection />
 
         {/* Add some bottom padding for tab bar */}
         <View className="pb-20" />

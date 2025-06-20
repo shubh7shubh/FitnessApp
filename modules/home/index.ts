@@ -1,5 +1,6 @@
 // Components
 export { HeroSection } from "./components/HeroSection";
+export { PlansBanner } from "./components/PlansBanner";
 
 // Hooks
 export { useTheme } from "./hooks/useTheme";
