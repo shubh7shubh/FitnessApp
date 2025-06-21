@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useNutrition } from "../hooks/useNutrition";
 import { FoodItem, MealType } from "../types";
 import { FoodItemCard } from "../components/FoodItemCard";
+import { useDiaryStore } from "@/modules/diary/store/useDiaryStore";
 
 type MealTypeInfo = {
   value: MealType;
@@ -47,12 +48,16 @@ const MEAL_TYPES: MealTypeInfo[] = [
 
 export const FoodSearchScreen: React.FC = () => {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    mealType?: string;
+    date?: string;
+  }>();
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [showMealDropdown, setShowMealDropdown] =
-    useState(false);
-  const dropdownAnimation = React.useRef(
-    new Animated.Value(0)
-  ).current;
+  const [showMealDropdown, setShowMealDropdown] = useState(false);
+  const dropdownAnimation = React.useRef(new Animated.Value(0)).current;
+
+  const { addFoodToMeal } = useDiaryStore();
 
   const {
     selectedMealType,
@@ -60,14 +65,21 @@ export const FoodSearchScreen: React.FC = () => {
     searchHistory,
     useSearchFoods,
     useSuggestedFoods,
-    addFood,
     isAddingFood,
   } = useNutrition();
 
-  const {
-    data: searchResults = [],
-    isLoading: isSearching,
-  } = useSearchFoods(searchQuery);
+  // Set initial meal type from params
+  useEffect(() => {
+    if (
+      params.mealType &&
+      MEAL_TYPES.some((m) => m.value === params.mealType)
+    ) {
+      setSelectedMealType(params.mealType as MealType);
+    }
+  }, [params.mealType, setSelectedMealType]);
+
+  const { data: searchResults = [], isLoading: isSearching } =
+    useSearchFoods(searchQuery);
   const { data: suggestions = [] } = useSuggestedFoods();
 
   const selectedMeal = MEAL_TYPES.find(
@@ -75,7 +87,16 @@ export const FoodSearchScreen: React.FC = () => {
   );
 
   const handleFoodSelect = (food: FoodItem) => {
-    addFood({ foodItem: food, servings: 1 });
+    // Use diary store if we have date params, otherwise use nutrition store
+    if (params.date) {
+      addFoodToMeal(params.date, selectedMealType, food);
+      router.back();
+    } else {
+      // Fallback to today's date
+      const today = new Date().toISOString().split("T")[0];
+      addFoodToMeal(today, selectedMealType, food);
+      router.back();
+    }
   };
 
   const toggleDropdown = () => {
@@ -96,10 +117,7 @@ export const FoodSearchScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#111827"
-      />
+      <StatusBar barStyle="light-content" backgroundColor="#111827" />
 
       <View className="flex-1">
         {/* Header */}
@@ -112,9 +130,7 @@ export const FoodSearchScreen: React.FC = () => {
               <Ionicons
                 name="arrow-back"
                 size={20}
-                color={
-                  showMealDropdown ? "#4ADE80" : "#6B7280"
-                }
+                color={showMealDropdown ? "#4ADE80" : "#6B7280"}
               />
             </TouchableOpacity>
 
@@ -133,11 +149,7 @@ export const FoodSearchScreen: React.FC = () => {
                 {selectedMeal?.label}
               </Text>
               <Ionicons
-                name={
-                  showMealDropdown
-                    ? "chevron-up"
-                    : "chevron-down"
-                }
+                name={showMealDropdown ? "chevron-up" : "chevron-down"}
                 size={16}
                 color="#6B7280"
               />
@@ -154,12 +166,10 @@ export const FoodSearchScreen: React.FC = () => {
             style={{
               transform: [
                 {
-                  translateY: dropdownAnimation.interpolate(
-                    {
-                      inputRange: [0, 1],
-                      outputRange: [-20, 0],
-                    }
-                  ),
+                  translateY: dropdownAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  }),
                 },
               ],
               opacity: dropdownAnimation,
@@ -174,18 +184,14 @@ export const FoodSearchScreen: React.FC = () => {
                     ? "bg-green-50 dark:bg-green-900/20"
                     : ""
                 } ${index === 0 ? "rounded-t-lg" : ""} ${
-                  index === MEAL_TYPES.length - 1
-                    ? "rounded-b-lg"
-                    : ""
+                  index === MEAL_TYPES.length - 1 ? "rounded-b-lg" : ""
                 }`}
               >
                 <Ionicons
                   name={meal.icon}
                   size={18}
                   color={
-                    selectedMealType === meal.value
-                      ? "#4ADE80"
-                      : "#6B7280"
+                    selectedMealType === meal.value ? "#4ADE80" : "#6B7280"
                   }
                 />
                 <Text
@@ -199,11 +205,7 @@ export const FoodSearchScreen: React.FC = () => {
                 </Text>
                 {selectedMealType === meal.value && (
                   <View className="ml-auto">
-                    <Ionicons
-                      name="checkmark"
-                      size={18}
-                      color="#4ADE80"
-                    />
+                    <Ionicons name="checkmark" size={18} color="#4ADE80" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -214,11 +216,7 @@ export const FoodSearchScreen: React.FC = () => {
           <View className="mt-2">
             <View className="relative">
               <View className="absolute left-4 top-0 bottom-0 justify-center z-10">
-                <Ionicons
-                  name="search"
-                  size={18}
-                  color="#9CA3AF"
-                />
+                <Ionicons name="search" size={18} color="#9CA3AF" />
               </View>
 
               <TextInput
@@ -236,21 +234,14 @@ export const FoodSearchScreen: React.FC = () => {
                   className="absolute right-4 top-0 bottom-0 justify-center"
                 >
                   <View className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded-full items-center justify-center">
-                    <Ionicons
-                      name="close"
-                      size={14}
-                      color="#6B7280"
-                    />
+                    <Ionicons name="close" size={14} color="#6B7280" />
                   </View>
                 </TouchableOpacity>
               )}
 
               {isSearching && (
                 <View className="absolute right-4 top-0 bottom-0 justify-center">
-                  <ActivityIndicator
-                    size="small"
-                    color="#4ADE80"
-                  />
+                  <ActivityIndicator size="small" color="#4ADE80" />
                 </View>
               )}
             </View>
@@ -259,70 +250,81 @@ export const FoodSearchScreen: React.FC = () => {
 
         {/* Content */}
         <ScrollView
-          className="flex-1 bg-white dark:bg-gray-900"
-          showsVerticalScrollIndicator={false}
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* History Section */}
-          {!searchQuery && searchHistory.length > 0 && (
-            <View className="px-4 py-6">
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent
-                </Text>
-              </View>
-
-              <View className="space-y-2">
-                {searchHistory
-                  .slice(0, 3)
-                  .map((food: FoodItem) => (
+          {searchQuery.length === 0 ? (
+            <View className="px-4">
+              {/* Search History */}
+              {searchHistory.length > 0 && (
+                <View className="mt-6">
+                  <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Recent
+                  </Text>
+                  {searchHistory.slice(0, 5).map((food) => (
                     <FoodItemCard
-                      key={`history-${food.id}`}
+                      key={food.id}
                       food={food}
                       onPress={() => handleFoodSelect(food)}
                       isLoading={isAddingFood}
-                      showAddButton
+                      showAddButton={true}
                     />
                   ))}
-              </View>
-            </View>
-          )}
+                </View>
+              )}
 
-          {/* Suggestions Section */}
-          {!searchQuery && suggestions.length > 0 && (
-            <View className="px-4 py-6">
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Suggestions
-              </Text>
-
-              <View className="space-y-2">
-                {suggestions.map((food: FoodItem) => (
+              {/* Suggested Foods */}
+              <View className="mt-6">
+                <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Suggested Foods
+                </Text>
+                {suggestions.slice(0, 10).map((food) => (
                   <FoodItemCard
-                    key={`suggestion-${food.id}`}
+                    key={food.id}
                     food={food}
                     onPress={() => handleFoodSelect(food)}
                     isLoading={isAddingFood}
-                    showAddButton
+                    showAddButton={true}
                   />
                 ))}
               </View>
             </View>
-          )}
-
-          {/* Search Results */}
-          {searchQuery && searchResults.length > 0 && (
-            <View className="px-4 py-6">
-              <View className="space-y-2">
-                {searchResults.map((food: FoodItem) => (
-                  <FoodItemCard
-                    key={`search-${food.id}`}
-                    food={food}
-                    onPress={() => handleFoodSelect(food)}
-                    isLoading={isAddingFood}
-                    showAddButton
-                  />
-                ))}
-              </View>
+          ) : (
+            <View className="px-4 mt-4">
+              {isSearching ? (
+                <View className="flex-1 justify-center items-center py-20">
+                  <ActivityIndicator size="large" color="#4ADE80" />
+                  <Text className="text-gray-500 dark:text-gray-400 mt-4">
+                    Searching foods...
+                  </Text>
+                </View>
+              ) : searchResults.length > 0 ? (
+                <>
+                  <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Search Results ({searchResults.length})
+                  </Text>
+                  {searchResults.map((food) => (
+                    <FoodItemCard
+                      key={food.id}
+                      food={food}
+                      onPress={() => handleFoodSelect(food)}
+                      isLoading={isAddingFood}
+                      showAddButton={true}
+                    />
+                  ))}
+                </>
+              ) : (
+                <View className="flex-1 justify-center items-center py-20">
+                  <Ionicons name="search" size={48} color="#9CA3AF" />
+                  <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                    No foods found for "{searchQuery}"
+                  </Text>
+                  <Text className="text-gray-400 dark:text-gray-500 mt-2 text-center">
+                    Try a different search term
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
