@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // <-- Added useEffect
+import React, { useState, useEffect } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -9,7 +9,6 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 
 // Import from our new modular structure
@@ -17,22 +16,21 @@ import { HeroSection } from "@/modules/home/components/HeroSection";
 import { PlansBanner } from "@/modules/home/components/PlansBanner";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 import { useHomeStore } from "@/modules/home/store/homeStore";
-import { Loader } from "@/components/Loader";
+import Loader from "@/components/Loader";
 import { QuickLogModal } from "@/modules/nutrition";
+import { useAppStore } from "@/stores/appStore";
 
 // --- 1. ADD THESE IMPORTS ---
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
 import ProductsSection from "@/modules/products/components/ProductsSection";
 
 export default function Index(): JSX.Element {
-  const { signOut } = useAuth();
-  const { user } = useUser();
   const router = useRouter();
   const { colors } = useTheme();
   const { refreshData, isLoading } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [showQuickLogModal, setShowQuickLogModal] =
-    useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const { currentUser } = useAppStore();
 
   // --- 2. ADD THIS LOGIC TO FETCH PRODUCT DATA ---
   const { fetchProducts } = useProductsStore();
@@ -81,10 +79,7 @@ export default function Index(): JSX.Element {
   ];
 
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: colors.background }}
-    >
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* HEADER */}
       <View
         className="flex-row justify-between items-center px-6 py-4 pt-3"
@@ -101,10 +96,7 @@ export default function Index(): JSX.Element {
           >
             FitNext
           </Text>
-          <Text
-            className="text-sm"
-            style={{ color: colors.text.secondary }}
-          >
+          <Text className="text-sm" style={{ color: colors.text.secondary }}>
             Your fitness journey
           </Text>
         </View>
@@ -119,26 +111,16 @@ export default function Index(): JSX.Element {
             borderColor: colors.primary,
           }}
         >
-          {user?.imageUrl ? (
-            <Image
-              source={{ uri: user.imageUrl }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <View
-              className="w-full h-full items-center justify-center"
-              style={{
-                backgroundColor: colors.primary + "20",
-              }}
-            >
-              <Ionicons
-                name="person"
-                size={20}
-                color={colors.primary}
-              />
-            </View>
-          )}
+          <View
+            className="w-full h-full items-center justify-center"
+            style={{
+              backgroundColor: colors.primary + "20",
+            }}
+          >
+            <Text style={{ color: colors.primary }}>
+              {currentUser?.name?.charAt(0) || "U"}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 
