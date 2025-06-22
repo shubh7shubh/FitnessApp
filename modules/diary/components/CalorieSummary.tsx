@@ -11,7 +11,7 @@ interface CalorieSummaryProps {
 }
 
 const CalorieSummary = ({ dateString }: CalorieSummaryProps) => {
-  const { getDiaryForDate } = useDiaryStore();
+  const { getDiaryForDate, getTotalCaloriesBurnedForDate } = useDiaryStore();
   const { todayStats } = useHomeStore();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
@@ -27,9 +27,17 @@ const CalorieSummary = ({ dateString }: CalorieSummaryProps) => {
     0
   );
 
-  // Use today's goals and exercise data for current day, otherwise use defaults
+  // Calculate calories burned from diary exercises
+  const diaryCaloriesBurned = getTotalCaloriesBurnedForDate(dateString);
+
+  // Use diary exercise data, or fall back to today's stats for current day
   const caloriesGoal = isCurrentDay ? todayStats.caloriesGoal : 2000;
-  const caloriesBurned = isCurrentDay ? todayStats.caloriesBurned : 0;
+  const caloriesBurned =
+    diaryCaloriesBurned > 0
+      ? diaryCaloriesBurned
+      : isCurrentDay
+        ? todayStats.caloriesBurned
+        : 0;
 
   const remaining = caloriesGoal - caloriesConsumed + caloriesBurned;
   const progress = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);

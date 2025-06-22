@@ -6,29 +6,34 @@ import {
   Pressable,
   useColorScheme,
   StatusBar,
+  Animated,
 } from "react-native";
 import React, {
   useState,
   useRef,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import { Stack, useRouter } from "expo-router";
 import PagerView, {
   PagerViewOnPageSelectedEvent,
 } from "react-native-pager-view";
-import {
-  format,
-  addDays,
-  subDays,
-  isToday,
-} from "date-fns";
+import { format, addDays, subDays, isToday } from "date-fns";
 import { Feather } from "@expo/vector-icons";
 
 import CalorieSummary from "@/modules/diary/components/CalorieSummary";
 import MealSection from "@/modules/diary/components/MealSection";
+import { ExerciseSection } from "@/modules/diary/components/ExerciseSection";
 import { useDiaryStore } from "@/modules/diary/store/useDiaryStore";
 import { COLORS } from "@/constants/theme";
+
+const HEADER_HEIGHT = 64;
+const DATE_NAVIGATOR_HEIGHT = 70;
+const CALORIE_SUMMARY_HEIGHT = 90;
+const SCROLL_THRESHOLD = 10;
+const TOTAL_FIXED_HEIGHT =
+  HEADER_HEIGHT + DATE_NAVIGATOR_HEIGHT + CALORIE_SUMMARY_HEIGHT;
 
 // This is the content for a single day's page in the swiper
 const DiaryPage = React.memo(
@@ -36,140 +41,55 @@ const DiaryPage = React.memo(
     dateString,
     colorScheme,
     router,
-    currentDate,
-    changeDate,
+    onScroll,
   }: {
     dateString: string;
     colorScheme: "light" | "dark";
     router: any;
-    currentDate: Date;
-    changeDate: (offset: number) => void;
+    onScroll: (event: any) => void;
   }) => {
-    const diary = useDiaryStore((state) =>
-      state.getDiaryForDate(dateString)
-    );
+    const diary = useDiaryStore((state) => state.getDiaryForDate(dateString));
     const colors = COLORS[colorScheme];
 
-    // Combine meals for the list
-    const sections = [...diary.meals];
+    // Combine meals and exercises for the list
+    const sections = [...diary.meals, ...diary.exercises];
 
     return (
       <FlatList
         data={sections}
         keyExtractor={(item) => item.name}
-        ListHeaderComponent={() => (
-          <View>
-            {/* Diary Header - Scrollable */}
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                marginBottom: 8,
-              }}
-            >
-              <View className="flex-row items-center justify-between">
-                <Pressable
-                  onPress={() => router.back()}
-                  className="w-9 h-9 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: colors.surfaceElevated,
-                  }}
-                >
-                  <Feather
-                    name="arrow-left"
-                    size={18}
-                    color={colors.text.primary}
-                  />
-                </Pressable>
-
-                <Text
-                  style={{ color: colors.text.primary }}
-                  className="text-lg font-bold"
-                >
-                  Diary
-                </Text>
-
-                <View className="w-9" />
-              </View>
-            </View>
-
-            {/* Date Navigator */}
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                marginBottom: 8,
-              }}
-              className="shadow-sm"
-            >
-              <View className="flex-row items-center justify-between">
-                <Pressable
-                  onPress={() => changeDate(-1)}
-                  className="w-8 h-8 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: colors.surfaceElevated,
-                  }}
-                >
-                  <Feather
-                    name="chevron-left"
-                    size={16}
-                    color={colors.text.primary}
-                  />
-                </Pressable>
-
-                <View className="items-center">
-                  <Text
-                    style={{ color: colors.text.primary }}
-                    className="text-base font-semibold"
-                  >
-                    {isToday(currentDate)
-                      ? "Today"
-                      : format(currentDate, "EEEE")}
-                  </Text>
-                  <Text
-                    style={{ color: colors.text.secondary }}
-                    className="text-xs mt-1"
-                  >
-                    {format(currentDate, "MMM d, yyyy")}
-                  </Text>
-                </View>
-
-                <Pressable
-                  onPress={() => changeDate(1)}
-                  className="w-8 h-8 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: colors.surfaceElevated,
-                  }}
-                >
-                  <Feather
-                    name="chevron-right"
-                    size={16}
-                    color={colors.text.primary}
-                  />
-                </Pressable>
-              </View>
-            </View>
-
-            {/* Calories Summary */}
-            <CalorieSummary dateString={dateString} />
-          </View>
-        )}
-        ListFooterComponent={() => (
-          <View style={{ height: 20 }} />
-        )}
-        renderItem={({ item }) => (
-          <MealSection
-            meal={item}
-            dateString={dateString}
-          />
-        )}
+        ListHeaderComponent={() => <View style={{ height: 16 }} />}
+        ListFooterComponent={() => <View style={{ height: 100 }} />}
+        renderItem={({ item, index }) => {
+          // Check if this is a meal or exercise session
+          if ("items" in item) {
+            // This is a meal
+            return (
+              <MealSection meal={item} dateString={dateString} index={index} />
+            );
+          } else {
+            // This is an exercise session
+            return (
+              <ExerciseSection
+                exerciseSession={item}
+                dateString={dateString}
+                index={index}
+              />
+            );
+          }
+        }}
         style={{ backgroundColor: colors.background }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingBottom: 40,
+          flexGrow: 1,
+        }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        bounces={true}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
       />
     );
   }
@@ -179,24 +99,117 @@ DiaryPage.displayName = "DiaryPage";
 
 // The main screen component for the "Diary" tab
 export default function DiaryTab() {
-  const [currentDate, setCurrentDate] = useState(
-    new Date()
-  );
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isInitialized, setIsInitialized] = useState(false);
   const pagerRef = useRef<PagerView>(null);
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
   const router = useRouter();
 
+  // Animated values for smooth transitions
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const dateNavigatorTranslateY = useRef(new Animated.Value(0)).current;
+  const calorieSummaryTranslateY = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const isHeaderVisible = useRef(true);
+
+  // Initialize component
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Optimize: Create only 21 pages (10 days before, today, 10 days after)
   const { dates, initialPage } = useMemo(() => {
-    const datesList = Array.from({ length: 21 }).map(
-      (_, i) => addDays(new Date(), i - 10)
+    const datesList = Array.from({ length: 21 }).map((_, i) =>
+      addDays(new Date(), i - 10)
     );
     return {
       dates: datesList,
       initialPage: 10, // Index of today's date
     };
   }, []);
+
+  // Handle scroll for header animation
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (!isInitialized) return;
+
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+      const scrollDiff = currentScrollY - lastScrollY.current;
+
+      // Only animate if scroll difference is significant to avoid jittery animations
+      if (Math.abs(scrollDiff) < SCROLL_THRESHOLD) {
+        return;
+      }
+
+      if (scrollDiff > 0 && currentScrollY > 50 && isHeaderVisible.current) {
+        // Scrolling down - hide header and move other elements up
+        isHeaderVisible.current = false;
+
+        Animated.parallel([
+          Animated.timing(headerTranslateY, {
+            toValue: -HEADER_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dateNavigatorTranslateY, {
+            toValue: -HEADER_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(calorieSummaryTranslateY, {
+            toValue: -HEADER_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(contentTranslateY, {
+            toValue: -HEADER_HEIGHT, // Move content up by the header's height
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      } else if (scrollDiff < 0 && !isHeaderVisible.current) {
+        // Scrolling up - show header and move other elements back
+        isHeaderVisible.current = true;
+
+        Animated.parallel([
+          Animated.timing(headerTranslateY, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dateNavigatorTranslateY, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(calorieSummaryTranslateY, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(contentTranslateY, {
+            toValue: 0, // Move content back to its original position
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+
+      lastScrollY.current = currentScrollY;
+    },
+    [
+      headerTranslateY,
+      dateNavigatorTranslateY,
+      calorieSummaryTranslateY,
+      contentTranslateY,
+      isInitialized,
+    ]
+  );
 
   // When the user swipes, this updates our state
   const onPageSelected = useCallback(
@@ -215,9 +228,7 @@ export default function DiaryTab() {
       if (!pagerRef.current) return;
 
       const currentIndex = dates.findIndex(
-        (d) =>
-          format(d, "yyyy-MM-dd") ===
-          format(currentDate, "yyyy-MM-dd")
+        (d) => format(d, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
       );
 
       if (currentIndex === -1) return;
@@ -234,6 +245,28 @@ export default function DiaryTab() {
     [dates, currentDate]
   );
 
+  if (!isInitialized) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+        }}
+      >
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          backgroundColor={colors.background}
+        />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={{
@@ -242,11 +275,7 @@ export default function DiaryTab() {
       }}
     >
       <StatusBar
-        barStyle={
-          colorScheme === "dark"
-            ? "light-content"
-            : "dark-content"
-        }
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
       />
 
@@ -256,13 +285,145 @@ export default function DiaryTab() {
         }}
       />
 
-      <View
+      {/* Animated Header - Diary Title and Back Button */}
+      <Animated.View
         style={{
-          flex: 1,
-          backgroundColor:
-            colorScheme === "dark" ? "#0F0F0F" : "#F8FAFC",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: HEADER_HEIGHT,
+          backgroundColor: colors.surface,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          zIndex: 30,
+          transform: [{ translateY: headerTranslateY }],
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 5,
         }}
       >
+        <View className="flex-row items-center justify-between">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-9 h-9 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: colors.surfaceElevated,
+            }}
+          >
+            <Feather name="arrow-left" size={18} color={colors.text.primary} />
+          </Pressable>
+
+          <Text
+            style={{ color: colors.text.primary }}
+            className="text-lg font-bold"
+          >
+            Diary
+          </Text>
+
+          <View className="w-9" />
+        </View>
+      </Animated.View>
+
+      {/* Animated Date Navigator */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: HEADER_HEIGHT,
+          left: 0,
+          right: 0,
+          height: DATE_NAVIGATOR_HEIGHT,
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          zIndex: 25,
+          transform: [{ translateY: dateNavigatorTranslateY }],
+        }}
+      >
+        <View className="flex-row items-center justify-between flex-1">
+          <Pressable
+            onPress={() => changeDate(-1)}
+            className="w-8 h-8 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: colors.surfaceElevated,
+            }}
+          >
+            <Feather
+              name="chevron-left"
+              size={16}
+              color={colors.text.primary}
+            />
+          </Pressable>
+
+          <View className="items-center">
+            <Text
+              style={{
+                color: isToday(currentDate) ? "#007AFF" : colors.text.primary,
+                fontWeight: isToday(currentDate) ? "700" : "600",
+              }}
+              className="text-base"
+            >
+              {isToday(currentDate) ? "Today" : format(currentDate, "EEEE")}
+            </Text>
+            <Text
+              style={{
+                color: isToday(currentDate) ? "#007AFF" : colors.text.secondary,
+                opacity: isToday(currentDate) ? 0.8 : 1,
+              }}
+              className="text-xs mt-0.5"
+            >
+              {format(currentDate, "MMM d, yyyy")}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={() => changeDate(1)}
+            className="w-8 h-8 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: colors.surfaceElevated,
+            }}
+          >
+            <Feather
+              name="chevron-right"
+              size={16}
+              color={colors.text.primary}
+            />
+          </Pressable>
+        </View>
+      </Animated.View>
+
+      {/* Animated Calories Summary */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: HEADER_HEIGHT + DATE_NAVIGATOR_HEIGHT,
+          left: 0,
+          right: 0,
+          height: CALORIE_SUMMARY_HEIGHT,
+          zIndex: 20,
+          backgroundColor: colors.surface,
+          transform: [{ translateY: calorieSummaryTranslateY }],
+        }}
+      >
+        <CalorieSummary dateString={format(currentDate, "yyyy-MM-dd")} />
+      </Animated.View>
+
+      {/* Content Area with PagerView */}
+      <Animated.View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          transform: [{ translateY: contentTranslateY }],
+        }}
+      >
+        <View style={{ height: TOTAL_FIXED_HEIGHT }} />
         <PagerView
           ref={pagerRef}
           style={{ flex: 1 }}
@@ -274,19 +435,21 @@ export default function DiaryTab() {
           {dates.map((date, index) => (
             <View
               key={format(date, "yyyy-MM-dd")}
-              style={{ flex: 1 }}
+              style={{
+                flex: 1,
+                backgroundColor: colors.background,
+              }}
             >
               <DiaryPage
                 dateString={format(date, "yyyy-MM-dd")}
                 colorScheme={colorScheme}
                 router={router}
-                currentDate={currentDate}
-                changeDate={changeDate}
+                onScroll={handleScroll}
               />
             </View>
           ))}
         </PagerView>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
