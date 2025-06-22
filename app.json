@@ -27,7 +27,8 @@
       "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.INTERNET"
-      ]
+      ],
+      "package": "com.nischay23.fitnessapp"
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +50,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "3c5280f4-ad97-4abe-aa06-3c17435eb7b0"
+      }
     }
   }
 }
