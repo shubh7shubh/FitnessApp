@@ -25,6 +25,8 @@ export async function createUser(userData: {
   gender: string;
   heightCm: number;
   currentWeightKg: number;
+  activityLevel?: string;
+  goalType?: string;
 }): Promise<User> {
   try {
     let user: User | null = null;
@@ -37,6 +39,8 @@ export async function createUser(userData: {
         user.gender = userData.gender;
         user.heightCm = userData.heightCm;
         user.currentWeightKg = userData.currentWeightKg;
+        user.activityLevel = (userData.activityLevel as any) || "sedentary";
+        user.goalType = (userData.goalType as any) || "maintain";
       });
     });
 
@@ -60,6 +64,8 @@ export async function updateUser(
     gender: string;
     heightCm: number;
     currentWeightKg: number;
+    activityLevel: string;
+    goalType: string;
   }>
 ): Promise<User> {
   try {

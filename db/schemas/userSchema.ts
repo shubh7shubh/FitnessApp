@@ -26,9 +26,16 @@ export const userSchema = tableSchema({
     // A column for weight. It's also a 'number'.
     { name: "current_weight_kg", type: "number" },
 
-    // --- Default WatermelonDB Timestamp Fields ---
-    // These are required for any model. WatermelonDB manages them automatically.
-    // 'created_at' stores when the record was first made.
+    { name: "activity_level", type: "string" }, // 'sedentary', 'lightly_active', etc.
+    { name: "goal_type", type: "string" }, // 'lose', 'maintain', 'gain'
+    { name: "goal_rate_kg_per_week", type: "number", isOptional: true },
+
+    { name: "tdee", type: "number", isOptional: true },
+    { name: "daily_calorie_goal", type: "number", isOptional: true },
+    { name: "protein_goal_g", type: "number", isOptional: true },
+    { name: "carbs_goal_g", type: "number", isOptional: true },
+    { name: "fat_goal_g", type: "number", isOptional: true },
+
     { name: "created_at", type: "number" },
     // 'updated_at' stores the last time the record was changed.
     { name: "updated_at", type: "number" },
