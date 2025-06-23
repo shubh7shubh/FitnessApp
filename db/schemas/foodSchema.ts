@@ -1,0 +1,17 @@
+// db/schemas/foodSchema.ts
+import { tableSchema } from "@nozbe/watermelondb/Schema";
+
+export const foodSchema = tableSchema({
+  name: "foods",
+  columns: [
+    { name: "name", type: "string" },
+    { name: "brand", type: "string", isOptional: true },
+    { name: "calories", type: "number" },
+    { name: "protein_g", type: "number" },
+    { name: "carbs_g", type: "number" },
+    { name: "fat_g", type: "number" },
+    // We can add more nutrients like fiber, sugar, etc., later
+    { name: "serving_size", type: "number" },
+    { name: "serving_unit", type: "string" }, // e.g., 'g', 'ml', 'slice'
+  ],
+});

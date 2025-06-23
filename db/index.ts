@@ -6,6 +6,8 @@ import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite";
 // Import the master schema and all the models we've defined.
 import { myAppSchema } from "./schemas/index";
 import { User } from "./models/User";
+import { Food } from "./models/Food";
+import { DiaryEntry } from "./models/DiaryEntry";
 
 // --- Step 1: Create the Adapter ---
 // The adapter is the bridge between WatermelonDB's logic and the
@@ -28,9 +30,5 @@ const adapter = new SQLiteAdapter({
 // of all the model classes it needs to be aware of.
 export const database = new Database({
   adapter,
-  modelClasses: [
-    User,
-    // When we create more models like Food, DiaryEntry, etc.,
-    // we will add them to this array.
-  ],
+  modelClasses: [User, Food, DiaryEntry],
 });
