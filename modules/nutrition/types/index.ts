@@ -25,7 +25,7 @@ export interface FoodLog {
   totalCalories: number;
 }
 
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
 
 export type SearchTab = "all" | "myMeals" | "myRecipes" | "myFoods";
 
@@ -41,3 +41,19 @@ export interface NutritionState {
   searchHistory: FoodItem[];
   favoriteItems: FoodItem[];
 }
+
+// Helper function to convert Food model to FoodItem interface
+export const foodModelToItem = (food: any): FoodItem => ({
+  id: food.id,
+  name: food.name,
+  brand: food.brand,
+  calories: food.calories,
+  servingSize: food.servingSize?.toString() || "1",
+  servingUnit: food.servingUnit || "serving",
+  macros: {
+    protein: food.protein_g || 0,
+    carbs: food.carbs_g || 0,
+    fat: food.fat_g || 0,
+  },
+  isVerified: true, // All local foods are considered verified
+});

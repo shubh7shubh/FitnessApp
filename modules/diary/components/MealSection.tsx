@@ -1,77 +1,74 @@
-import {
-  View,
-  Text,
-  Pressable,
-  useColorScheme,
-} from "react-native";
+// src/modules/diary/components/MealSection.tsx
+
 import React from "react";
-import { DiaryMeal } from "../types";
+import { View, Text, Pressable, useColorScheme } from "react-native";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FITNESS_COLORS } from "@/constants/theme";
+import { COLORS } from "@/constants/theme";
+import { MealType } from "@/modules/nutrition/types";
 
-interface MealSectionProps {
-  meal: DiaryMeal;
-  dateString: string;
-  index: number;
+// Interface for displaying food items in meals
+export interface DisplayFoodItem {
+  id: string;
+  name: string;
+  calories: number;
+  servings: number;
 }
 
-const MealSection = ({
-  meal,
-  dateString,
-  index,
-}: MealSectionProps) => {
+interface MealSectionProps {
+  mealName: MealType;
+  items: DisplayFoodItem[];
+  dateString: string;
+}
+
+const MealSection = ({ mealName, items, dateString }: MealSectionProps) => {
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
 
-  const totalCalories = meal.items.reduce(
-    (sum, item) => sum + item.calories,
-    0
-  );
+  const totalCalories = items.reduce((sum, item) => sum + item.calories, 0);
 
-  // Get meal icon based on meal type
-  const getMealIcon = (
-    mealName: string
-  ): keyof typeof Ionicons.glyphMap => {
-    switch (mealName.toLowerCase()) {
+  // Meal icon mapping
+  const getMealIcon = (name: MealType): keyof typeof Ionicons.glyphMap => {
+    switch (name) {
       case "breakfast":
-        return "sunny";
+        return "sunny-outline";
       case "lunch":
-        return "partly-sunny";
+        return "partly-sunny-outline";
       case "dinner":
-        return "moon";
-      case "snack":
-        return "nutrition";
+        return "moon-outline";
+      case "snacks":
+        return "nutrition-outline";
       default:
-        return "restaurant";
+        return "restaurant-outline";
     }
   };
 
-  const getMealColor = (mealName: string): string => {
-    switch (mealName.toLowerCase()) {
+  // Meal color mapping
+  const getMealColor = (name: MealType): string => {
+    switch (name) {
       case "breakfast":
-        return "#F59E0B"; // Amber
+        return "#FF9500"; // Orange
       case "lunch":
-        return "#10B981"; // Green
+        return "#007AFF"; // Blue
       case "dinner":
-        return "#8B5CF6"; // Purple
-      case "snack":
-        return "#F97316"; // Orange
+        return "#5856D6"; // Purple
+      case "snacks":
+        return "#34C759"; // Green
       default:
-        return colors.primary;
+        return "#6B7280"; // Gray
     }
   };
 
-  const mealIcon = getMealIcon(meal.name);
-  const mealColor = getMealColor(meal.name);
+  const mealIcon = getMealIcon(mealName);
+  const mealColor = getMealColor(mealName);
+  const capitalizedMealName =
+    mealName.charAt(0).toUpperCase() + mealName.slice(1);
 
   return (
-    <View className={`mb-0 ${index === 0 ? "mt-4" : ""}`}>
+    <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
       <View
         style={{
           backgroundColor: colors.surface,
-          marginHorizontal: 16,
-          marginBottom: 12,
           borderRadius: 12,
           borderWidth: 1,
           borderColor: colors.border,
@@ -79,14 +76,13 @@ const MealSection = ({
         }}
         className="shadow-sm"
       >
-        {/* Compact Meal Header */}
+        {/* Header */}
         <View
           style={{
             backgroundColor: colors.surfaceElevated,
             paddingHorizontal: 16,
             paddingVertical: 12,
-            borderBottomWidth:
-              meal.items.length > 0 ? 1 : 0,
+            borderBottomWidth: items.length > 0 ? 1 : 0,
             borderBottomColor: colors.border,
           }}
         >
@@ -102,11 +98,9 @@ const MealSection = ({
                 style={{ color: colors.text.primary }}
                 className="text-base font-semibold"
               >
-                {meal.name.charAt(0).toUpperCase() +
-                  meal.name.slice(1)}
+                {capitalizedMealName}
               </Text>
             </View>
-
             <Text
               style={{ color: colors.text.primary }}
               className="text-base font-bold"
@@ -116,18 +110,18 @@ const MealSection = ({
           </View>
         </View>
 
-        {/* Compact Food Items */}
-        {meal.items.length > 0 && (
+        {/* List of food items */}
+        {items.length > 0 && (
           <View
             style={{
               paddingHorizontal: 16,
               paddingVertical: 4,
             }}
           >
-            {meal.items.map((item, index) => (
+            {items.map((item) => (
               <View
-                key={`${item.id}-${index}`}
-                className="flex-row justify-between items-center py-1"
+                key={item.id}
+                className="flex-row justify-between items-center py-2"
               >
                 <View className="flex-1">
                   <Text
@@ -137,20 +131,28 @@ const MealSection = ({
                   >
                     {item.name}
                   </Text>
+                  {item.servings !== 1 && (
+                    <Text
+                      style={{ color: colors.text.secondary }}
+                      className="text-xs"
+                    >
+                      {item.servings}{" "}
+                      {item.servings === 1 ? "serving" : "servings"}
+                    </Text>
+                  )}
                 </View>
-
                 <Text
                   style={{ color: colors.text.secondary }}
                   className="text-sm ml-4"
                 >
-                  {Math.round(item.calories)}
+                  {Math.round(item.calories)} cal
                 </Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Compact Add Food Button */}
+        {/* Add Food Button */}
         <View
           style={{
             paddingHorizontal: 16,
@@ -161,7 +163,7 @@ const MealSection = ({
             href={{
               pathname: "/nutrition/search",
               params: {
-                mealType: meal.name,
+                mealType: mealName,
                 date: dateString,
               },
             }}
@@ -172,11 +174,12 @@ const MealSection = ({
                 backgroundColor: colors.primary + "10",
                 borderRadius: 8,
                 paddingVertical: 10,
-                paddingHorizontal: 16,
                 borderWidth: 1,
                 borderColor: colors.primary + "20",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-              className="flex-row items-center justify-center"
             >
               <Ionicons
                 name="add"

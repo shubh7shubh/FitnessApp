@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,15 @@ import {
   StatusBar,
   SafeAreaView,
   Animated,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useNutrition } from "../hooks/useNutrition";
-import { FoodItem, MealType } from "../types";
+
+import { MealType, FoodItem } from "../types";
 import { FoodItemCard } from "../components/FoodItemCard";
-import { useDiaryStore } from "@/modules/diary/store/useDiaryStore";
+import { useNutrition } from "../hooks/useNutrition";
+import { searchFoods } from "@/db/actions/diaryActions";
 
 type MealTypeInfo = {
   value: MealType;
@@ -40,8 +42,8 @@ const MEAL_TYPES: MealTypeInfo[] = [
     icon: "moon-outline",
   },
   {
-    value: "snack",
-    label: "Snack",
+    value: "snacks",
+    label: "Snacks",
     icon: "nutrition-outline",
   },
 ] as const;
@@ -55,47 +57,87 @@ export const FoodSearchScreen: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showMealDropdown, setShowMealDropdown] = useState(false);
-  const dropdownAnimation = React.useRef(new Animated.Value(0)).current;
-
-  const { addFoodToMeal } = useDiaryStore();
-
-  const {
-    selectedMealType,
-    setSelectedMealType,
-    searchHistory,
-    useSearchFoods,
-    useSuggestedFoods,
-    isAddingFood,
-  } = useNutrition();
-
-  // Set initial meal type from params
-  useEffect(() => {
-    if (
-      params.mealType &&
-      MEAL_TYPES.some((m) => m.value === params.mealType)
-    ) {
-      setSelectedMealType(params.mealType as MealType);
-    }
-  }, [params.mealType, setSelectedMealType]);
-
-  const { data: searchResults = [], isLoading: isSearching } =
-    useSearchFoods(searchQuery);
-  const { data: suggestions = [] } = useSuggestedFoods();
-
-  const selectedMeal = MEAL_TYPES.find(
-    (meal) => meal.value === selectedMealType
+  const [selectedMealType, setSelectedMealType] = useState<MealType>(
+    params.mealType ? (params.mealType as MealType) : "breakfast"
   );
 
-  const handleFoodSelect = (food: FoodItem) => {
-    // Use diary store if we have date params, otherwise use nutrition store
-    if (params.date) {
-      addFoodToMeal(params.date, selectedMealType, food);
-      router.back();
-    } else {
-      // Fallback to today's date
-      const today = new Date().toISOString().split("T")[0];
-      addFoodToMeal(today, selectedMealType, food);
-      router.back();
+  const dropdownAnimation = React.useRef(new Animated.Value(0)).current;
+
+  // Use our nutrition hook for local-first operations
+  const {
+    isInitialized,
+    searchResults, // FoodItem[] for UI display
+    searchResultsRaw, // Food[] models for database operations
+    isSearching,
+    searchHistory,
+    isAddingFood,
+    setIsAddingFood,
+    suggestedFoods,
+    performSearch,
+    addFoodToDiary,
+  } = useNutrition();
+
+  // Get current date or use provided date
+  const dateToLog = useMemo(() => {
+    if (params.date) return params.date;
+    const today = new Date();
+    return today.toISOString().split("T")[0]; // YYYY-MM-DD format
+  }, [params.date]);
+
+  // Find the selected meal info
+  const selectedMeal = useMemo(
+    () => MEAL_TYPES.find((meal) => meal.value === selectedMealType),
+    [selectedMealType]
+  );
+
+  // Debounced search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (isInitialized) {
+        performSearch(searchQuery);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, isInitialized, performSearch]);
+
+  const handleFoodSelect = async (
+    foodItem: FoodItem,
+    isFromSearch: boolean = false
+  ) => {
+    try {
+      setIsAddingFood(foodItem.id);
+
+      let foodModel;
+
+      if (isFromSearch) {
+        // Find the corresponding Food model from search results
+        foodModel = searchResultsRaw.find((food) => food.id === foodItem.id);
+        if (!foodModel) {
+          throw new Error("Food model not found in search results");
+        }
+      } else {
+        // For history/suggested foods, we need to search the database
+        const searchResults = await searchFoods(foodItem.name);
+        foodModel = searchResults.find((food) => food.id === foodItem.id);
+
+        if (!foodModel) {
+          throw new Error("Food not found in database");
+        }
+      }
+
+      await addFoodToDiary(foodModel, selectedMealType, dateToLog, 1);
+
+      // Show success and navigate back
+      Alert.alert(
+        "Success",
+        `${foodItem.name} added to ${selectedMeal?.label}`,
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (error) {
+      console.error("Error adding food:", error);
+      Alert.alert("Error", "Failed to add food to diary. Please try again.");
+      setIsAddingFood(null);
     }
   };
 
@@ -115,6 +157,20 @@ export const FoodSearchScreen: React.FC = () => {
     toggleDropdown();
   };
 
+  // Show loading if database is not initialized
+  if (!isInitialized) {
+    return (
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#4ADE80" />
+          <Text className="text-gray-500 dark:text-gray-400 mt-4">
+            Initializing food database...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
       <StatusBar barStyle="light-content" backgroundColor="#111827" />
@@ -127,11 +183,7 @@ export const FoodSearchScreen: React.FC = () => {
               onPress={() => router.back()}
               className="w-10 h-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800"
             >
-              <Ionicons
-                name="arrow-back"
-                size={20}
-                color={showMealDropdown ? "#4ADE80" : "#6B7280"}
-              />
+              <Ionicons name="arrow-back" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             {/* Meal Type Selector */}
@@ -266,8 +318,8 @@ export const FoodSearchScreen: React.FC = () => {
                     <FoodItemCard
                       key={food.id}
                       food={food}
-                      onPress={() => handleFoodSelect(food)}
-                      isLoading={isAddingFood}
+                      onPress={() => handleFoodSelect(food, false)}
+                      isLoading={isAddingFood === food.id}
                       showAddButton={true}
                     />
                   ))}
@@ -279,15 +331,21 @@ export const FoodSearchScreen: React.FC = () => {
                 <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   Suggested Foods
                 </Text>
-                {suggestions.slice(0, 10).map((food) => (
-                  <FoodItemCard
-                    key={food.id}
-                    food={food}
-                    onPress={() => handleFoodSelect(food)}
-                    isLoading={isAddingFood}
-                    showAddButton={true}
-                  />
-                ))}
+                {suggestedFoods.length > 0 ? (
+                  suggestedFoods.map((food) => (
+                    <FoodItemCard
+                      key={food.id}
+                      food={food}
+                      onPress={() => handleFoodSelect(food, false)}
+                      isLoading={isAddingFood === food.id}
+                      showAddButton={true}
+                    />
+                  ))
+                ) : (
+                  <Text className="text-gray-500 dark:text-gray-400 text-center py-8">
+                    No recent foods. Start by searching for foods above.
+                  </Text>
+                )}
               </View>
             </View>
           ) : (
@@ -308,8 +366,8 @@ export const FoodSearchScreen: React.FC = () => {
                     <FoodItemCard
                       key={food.id}
                       food={food}
-                      onPress={() => handleFoodSelect(food)}
-                      isLoading={isAddingFood}
+                      onPress={() => handleFoodSelect(food, true)}
+                      isLoading={isAddingFood === food.id}
                       showAddButton={true}
                     />
                   ))}

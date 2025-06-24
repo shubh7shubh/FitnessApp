@@ -1,174 +1,142 @@
-import { useState, useEffect } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { Food } from "@/db/models/Food";
 import {
   searchFoods,
-  getFoodById,
-  getSuggestedFoods,
-} from "../services/foodService";
-import { useNutritionStore } from "../store/nutritionStore";
-import { FoodItem, FoodLog, MealType } from "../types";
+  logFoodToDiary,
+} from "@/db/actions/diaryActions";
+import { seedFoodDatabase } from "@/db/actions/foodActions";
+import {
+  MealType,
+  FoodItem,
+  foodModelToItem,
+} from "../types";
+import { useAppStore } from "@/stores/appStore";
 
 export const useNutrition = () => {
-  const [isAddingFood, setIsAddingFood] = useState(false);
-  const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
-  const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
+  const { currentUser } = useAppStore();
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [searchResults, setSearchResults] = useState<
+    Food[]
+  >([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<
+    FoodItem[]
+  >([]);
+  const [isAddingFood, setIsAddingFood] = useState<
+    string | null
+  >(null);
 
-  const {
-    selectedMealType,
-    foodLogs,
-    searchHistory,
-    favoriteItems,
-    setSelectedMealType,
-    addFoodLog,
-    removeFoodLog,
-    addToHistory,
-    addToFavorites,
-    removeFromFavorites,
-  } = useNutritionStore();
-
-  // Load suggestions on mount
+  // Initialize database on first load
   useEffect(() => {
-    const loadSuggestions = async () => {
+    const initializeDatabase = async () => {
       try {
-        const data = await getSuggestedFoods();
-        setSuggestions(data);
+        await seedFoodDatabase();
+        setIsInitialized(true);
+        console.log("✅ Database initialized successfully");
       } catch (error) {
-        console.error("Error loading suggestions:", error);
+        console.error(
+          "❌ Failed to initialize database:",
+          error
+        );
       }
     };
-    loadSuggestions();
-  }, []);
 
-  const useSearchFoods = (query: string) => {
-    useEffect(() => {
-      const searchFood = async () => {
-        if (query === "") {
-          setSearchResults([]);
-          setIsSearching(false);
-          return;
-        }
-
-        setIsSearching(true);
-        try {
-          const data = await searchFoods(query);
-          setSearchResults(data);
-        } catch (error) {
-          console.error("Error searching foods:", error);
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      };
-
-      const timeoutId = setTimeout(searchFood, 300);
-      return () => clearTimeout(timeoutId);
-    }, [query]);
-
-    return { data: searchResults, isLoading: isSearching };
-  };
-
-  const useSuggestedFoods = () => {
-    return { data: suggestions };
-  };
-
-  const useFoodDetails = (id: string) => {
-    const [food, setFood] = useState<FoodItem | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-      if (!id) return;
-
-      const loadFood = async () => {
-        setIsLoading(true);
-        try {
-          const data = await getFoodById(id);
-          setFood(data);
-        } catch (error) {
-          console.error("Error loading food details:", error);
-          setFood(null);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadFood();
-    }, [id]);
-
-    return { data: food, isLoading };
-  };
-
-  const addFood = async ({
-    foodItem,
-    servings,
-  }: {
-    foodItem: FoodItem;
-    servings: number;
-  }) => {
-    setIsAddingFood(true);
-    try {
-      const totalCalories = Math.round(foodItem.calories * servings);
-      const foodLog: FoodLog = {
-        id: Date.now().toString(),
-        foodItem,
-        servings,
-        mealType: selectedMealType,
-        date: new Date().toISOString(),
-        totalCalories,
-      };
-
-      addFoodLog(foodLog);
-      addToHistory(foodItem);
-    } catch (error) {
-      console.error("Error adding food:", error);
-    } finally {
-      setIsAddingFood(false);
+    if (!isInitialized) {
+      initializeDatabase();
     }
-  };
+  }, [isInitialized]);
 
-  const removeFood = async (logId: string) => {
-    try {
-      removeFoodLog(logId);
-    } catch (error) {
-      console.error("Error removing food:", error);
-    }
-  };
+  // Search foods with debouncing
+  const performSearch = useCallback(
+    async (query: string) => {
+      if (!query || query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
 
-  const getTotalCaloriesForDay = (date: string): number => {
-    return foodLogs
-      .filter((log) => log.date.startsWith(date))
-      .reduce((total, log) => total + log.totalCalories, 0);
-  };
+      setIsSearching(true);
+      try {
+        const results = await searchFoods(query);
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    []
+  );
 
-  const getCaloriesForMeal = (mealType: MealType, date: string): number => {
-    return foodLogs
-      .filter((log) => log.mealType === mealType && log.date.startsWith(date))
-      .reduce((total, log) => total + log.totalCalories, 0);
-  };
+  // Log food to diary
+  const addFoodToDiary = useCallback(
+    async (
+      food: Food,
+      mealType: MealType,
+      date: string,
+      servings: number = 1
+    ) => {
+      if (!currentUser) {
+        throw new Error("No user found");
+      }
+
+      setIsAddingFood(food.id);
+      try {
+        await logFoodToDiary({
+          userId: currentUser.id,
+          food,
+          date,
+          mealType,
+          servings,
+        });
+
+        // Add to search history (convert to FoodItem format)
+        const foodItem = foodModelToItem(food);
+        setSearchHistory((prev) => {
+          const filtered = prev.filter(
+            (item) => item.id !== foodItem.id
+          );
+          return [foodItem, ...filtered].slice(0, 10); // Keep only 10 recent items
+        });
+
+        console.log(
+          `✅ Successfully logged ${food.name} to ${mealType}`
+        );
+      } catch (error) {
+        console.error("Error logging food:", error);
+        throw error;
+      } finally {
+        setIsAddingFood(null);
+      }
+    },
+    [currentUser]
+  );
+
+  // Get suggested foods (most recent from search history)
+  const suggestedFoods = useMemo(() => {
+    return searchHistory.slice(0, 5);
+  }, [searchHistory]); // This value is only re-calculated when searchHistory changes.
+
+  const searchResultsUI = useMemo(() => {
+    return searchResults.map(foodModelToItem);
+  }, [searchResults]); // This value is only re-calculated when searchResults changes.
 
   return {
-    // State
-    selectedMealType,
-    foodLogs,
+    isInitialized,
+    // Return both raw models and converted items
+    searchResultsRaw: searchResults,
+    searchResults: searchResultsUI,
+    isSearching,
     searchHistory,
-    favoriteItems,
-
-    // Actions
-    setSelectedMealType,
-    addToFavorites,
-    removeFromFavorites,
-
-    // Hooks
-    useSearchFoods,
-    useSuggestedFoods,
-    useFoodDetails,
-
-    // Mutations
-    addFood,
-    removeFood,
     isAddingFood,
-
-    // Computed values
-    getTotalCaloriesForDay,
-    getCaloriesForMeal,
+    setIsAddingFood,
+    suggestedFoods,
+    performSearch,
+    addFoodToDiary,
   };
 };

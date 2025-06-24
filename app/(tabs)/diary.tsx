@@ -7,6 +7,7 @@ import {
   useColorScheme,
   StatusBar,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import React, {
   useState,
@@ -23,9 +24,8 @@ import { format, addDays, subDays, isToday } from "date-fns";
 import { Feather } from "@expo/vector-icons";
 
 import CalorieSummary from "@/modules/diary/components/CalorieSummary";
-import MealSection from "@/modules/diary/components/MealSection";
-import { ExerciseSection } from "@/modules/diary/components/ExerciseSection";
-import { useDiaryStore } from "@/modules/diary/store/useDiaryStore";
+import { DiaryList } from "@/modules/diary/components/DiaryList";
+import { useAppStore } from "@/stores/appStore";
 import { COLORS } from "@/constants/theme";
 
 const HEADER_HEIGHT = 64;
@@ -48,36 +48,15 @@ const DiaryPage = React.memo(
     router: any;
     onScroll: (event: any) => void;
   }) => {
-    const diary = useDiaryStore((state) => state.getDiaryForDate(dateString));
     const colors = COLORS[colorScheme];
-
-    // Combine meals and exercises for the list
-    const sections = [...diary.meals, ...diary.exercises];
 
     return (
       <FlatList
-        data={sections}
-        keyExtractor={(item) => item.name}
-        ListHeaderComponent={() => <View style={{ height: 16 }} />}
+        ListHeaderComponent={() => <View style={{ height: 24 }} />}
         ListFooterComponent={() => <View style={{ height: 100 }} />}
-        renderItem={({ item, index }) => {
-          // Check if this is a meal or exercise session
-          if ("items" in item) {
-            // This is a meal
-            return (
-              <MealSection meal={item} dateString={dateString} index={index} />
-            );
-          } else {
-            // This is an exercise session
-            return (
-              <ExerciseSection
-                exerciseSession={item}
-                dateString={dateString}
-                index={index}
-              />
-            );
-          }
-        }}
+        data={[{ key: "diary" }]}
+        renderItem={() => <DiaryList dateString={dateString} />}
+        keyExtractor={(item) => item.key}
         style={{ backgroundColor: colors.background }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -105,6 +84,7 @@ export default function DiaryTab() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
   const router = useRouter();
+  const { currentUser } = useAppStore();
 
   // Animated values for smooth transitions
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -244,6 +224,39 @@ export default function DiaryTab() {
     },
     [dates, currentDate]
   );
+
+  // Show authentication check
+  if (!currentUser) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+        }}
+      >
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          backgroundColor={colors.background}
+        />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 20,
+          }}
+        >
+          <Text
+            style={{ color: colors.text.primary }}
+            className="text-lg font-semibold text-center"
+          >
+            Please create a profile to view your diary
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!isInitialized) {
     return (

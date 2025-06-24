@@ -1,7 +1,10 @@
 import { View, Text, useColorScheme } from "react-native";
 import React from "react";
-import { useDiaryStore } from "@/modules/diary/store/useDiaryStore";
-import { useHomeStore } from "@/modules/home/store/homeStore";
+import withObservables from "@nozbe/with-observables";
+import { Q } from "@nozbe/watermelondb";
+import { database } from "@/db/index";
+import { DiaryEntry } from "@/db/models/DiaryEntry";
+import { useAppStore } from "@/stores/appStore";
 import { isToday, parseISO } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FITNESS_COLORS } from "@/constants/theme";
@@ -10,37 +13,35 @@ interface CalorieSummaryProps {
   dateString: string;
 }
 
-const CalorieSummary = ({ dateString }: CalorieSummaryProps) => {
-  const { getDiaryForDate, getTotalCaloriesBurnedForDate } = useDiaryStore();
-  const { todayStats } = useHomeStore();
+interface ObservableProps {
+  diaryEntries: DiaryEntry[];
+}
+
+const BaseCalorieSummary = ({
+  dateString,
+  diaryEntries,
+}: CalorieSummaryProps & ObservableProps) => {
+  const { currentUser } = useAppStore();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
 
-  const diary = getDiaryForDate(dateString);
   const isCurrentDay = isToday(parseISO(dateString));
 
-  // Calculate total calories consumed from diary entries
-  const caloriesConsumed = diary.meals.reduce(
-    (total, meal) =>
-      total +
-      meal.items.reduce((mealTotal, item) => mealTotal + item.calories, 0),
+  // Calculate total calories from diary entries
+  const totalCalories = diaryEntries.reduce(
+    (total, entry) => total + entry.calories,
     0
   );
 
-  // Calculate calories burned from diary exercises
-  const diaryCaloriesBurned = getTotalCaloriesBurnedForDate(dateString);
+  // Get user's daily calorie goal from their profile
+  const caloriesGoal = currentUser?.dailyCalorieGoal || 2000;
 
-  // Use diary exercise data, or fall back to today's stats for current day
-  const caloriesGoal = isCurrentDay ? todayStats.caloriesGoal : 2000;
-  const caloriesBurned =
-    diaryCaloriesBurned > 0
-      ? diaryCaloriesBurned
-      : isCurrentDay
-        ? todayStats.caloriesBurned
-        : 0;
+  // For now, we'll use 0 for exercise calories since we don't have exercise tracking yet
+  // This can be extended when exercise functionality is added
+  const caloriesBurned = 0;
 
+  const caloriesConsumed = totalCalories;
   const remaining = caloriesGoal - caloriesConsumed + caloriesBurned;
-  const progress = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
 
   return (
     <View
@@ -142,5 +143,24 @@ const CalorieSummary = ({ dateString }: CalorieSummaryProps) => {
     </View>
   );
 };
+
+// Enhanced component with observables
+const CalorieSummary = withObservables(
+  ["dateString"],
+  ({ dateString }: CalorieSummaryProps) => {
+    const currentUser = useAppStore.getState().currentUser;
+
+    if (!currentUser) {
+      return { diaryEntries: [] };
+    }
+
+    return {
+      diaryEntries: database.collections
+        .get<DiaryEntry>("diary_entries")
+        .query(Q.where("date", dateString), Q.where("user_id", currentUser.id))
+        .observe(),
+    };
+  }
+)(BaseCalorieSummary);
 
 export default CalorieSummary;
