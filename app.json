@@ -1,5 +1,8 @@
 {
   "expo": {
+    "updates": {
+      "enabled": false
+    },
     "name": "fitness-app",
     "slug": "fitness-app",
     "version": "1.0.0",
@@ -9,13 +12,23 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.INTERNET"
+      ],
+      "package": "com.nischay23.fitnessapp"
     },
     "web": {
       "bundler": "metro",
@@ -32,10 +45,19 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "3c5280f4-ad97-4abe-aa06-3c17435eb7b0"
+      }
     }
   }
 }

@@ -1,26 +1,72 @@
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import InitialLayout from "@/components/InitialLayout";
-import ClerkAndConvexProvider from "@/providers/ClerkAndConvexProvider";
-import { SplashScreen } from "expo-router";
-import { useFonts } from "expo-font";
+// app/_layout.tsx
+
+import "../global.css";
 import { useCallback, useEffect } from "react";
-import * as NavigationBar from "expo-navigation-bar";
-import { Platform } from "react-native";
-
+import { useFonts } from "expo-font";
+import { SplashScreen, Slot, Stack } from "expo-router";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { Platform, View } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
 
+// --- Our New Imports ---
+import { useAppStore } from "@/stores/appStore";
+import { getActiveUser } from "@/db/actions/userActions";
+import { seedFoodDatabase } from "@/db/actions/foodActions";
+import CreateProfileScreen from "./(auth)/CreateProfileScreen";
+import DatabaseProvider from "@/providers/DatabaseProvider";
+
+// Keep the splash screen visible while we figure things out
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // --- State from our Zustand store ---
+  const {
+    isLoading,
+    isAuthenticated,
+    setCurrentUser,
+    setLoading,
+  } = useAppStore();
+
+  // Font loading
   const [fontsLoaded] = useFonts({
     "JetBrainsMono-Medium": require("../assets/fonts/JetBrainsMono-Medium.ttf"),
   });
 
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) await SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  // --- The Gatekeeper Logic ---
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // 1. Check the database for an existing user
+        await seedFoodDatabase(); // Seed the food database if needed
+        const user = await getActiveUser();
 
-  // update the native navigation bar on Android.
+        // 2. Update our Zustand store with the result
+        setCurrentUser(user);
+      } catch (e) {
+        console.error("Failed to initialize app:", e);
+        // Handle error, maybe set user to null
+        setCurrentUser(null);
+      } finally {
+        // 3. We're done loading, tell the store
+        setLoading(false);
+      }
+    };
+
+    initializeApp();
+  }, []); // The empty dependency array ensures this runs only once on app start
+
+  // --- Hide Splash Screen Logic ---
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded && !isLoading) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, isLoading]);
+
+  // Android Navigation Bar
   useEffect(() => {
     if (Platform.OS === "android") {
       NavigationBar.setBackgroundColorAsync("#000000");
@@ -28,14 +74,31 @@ export default function RootLayout() {
     }
   }, []);
 
+  // While fonts are loading or we are checking the database, keep showing nothing
+  if (!fontsLoaded || isLoading) {
+    return null;
+  }
+
   return (
-    <ClerkAndConvexProvider>
+    <DatabaseProvider>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#000" }} onLayout={onLayoutRootView}>
-          <InitialLayout />
+        <SafeAreaView
+          className="flex-1 bg-black"
+          onLayout={onLayoutRootView}
+        >
+          {isAuthenticated ? (
+            <Stack>
+              <Stack.Screen
+                name="(tabs)"
+                options={{ headerShown: false }}
+              />
+            </Stack>
+          ) : (
+            <CreateProfileScreen />
+          )}
         </SafeAreaView>
+        <StatusBar style="light" />
       </SafeAreaProvider>
-      <StatusBar style="light" />
-    </ClerkAndConvexProvider>
+    </DatabaseProvider>
   );
 }

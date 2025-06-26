@@ -1,122 +1,112 @@
-import { Loader } from "@/components/Loader";
-import { COLORS } from "@/constants/theme";
-import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
-import { styles } from "@/styles/profile.styles";
-import { useAuth } from "@clerk/clerk-expo";
+import Loader from "@/components/Loader";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "convex/react";
-import { Image } from "expo-image";
 import { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  FlatList,
-  Modal,
-  TouchableWithoutFeedback,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
+import { useAppStore } from "@/stores/appStore";
+import { updateUser } from "@/db/actions/userActions";
 
 export default function Profile() {
-  const { signOut, userId } = useAuth();
+  const { currentUser, setCurrentUser, logout } = useAppStore();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const currentUser = useQuery(api.users.getUserByClerkId, userId ? { clerkId: userId } : "skip");
-
   const [editedProfile, setEditedProfile] = useState({
-    fullname: currentUser?.fullname || "",
-    bio: currentUser?.bio || "",
+    name: currentUser?.name || "",
+    dateOfBirth: currentUser?.dateOfBirth || "",
+    gender: currentUser?.gender || "",
+    heightCm: currentUser?.heightCm || 0,
+    currentWeightKg: currentUser?.currentWeightKg || 0,
   });
 
-  const [selectedPost, setSelectedPost] = useState<Doc<"posts"> | null>(null);
-  const posts = useQuery(api.posts.getPostsByUser, {});
-
-  const updateProfile = useMutation(api.users.updateProfile);
+  if (!currentUser) return <Loader />;
 
   const handleSaveProfile = async () => {
-    await updateProfile(editedProfile);
-    setIsEditModalVisible(false);
+    try {
+      const updatedUser = await updateUser(currentUser, editedProfile);
+      setCurrentUser(updatedUser);
+      setIsEditModalVisible(false);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
   };
 
-  if (!currentUser || posts === undefined) return <Loader />;
-
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background">
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.username}>{currentUser.username}</Text>
+      <View className="flex-row justify-between items-center px-4 py-3 border-b border-surface">
+        <View className="flex-row items-center">
+          <Text className="text-xl font-bold text-white">
+            {currentUser.name}
+          </Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon} onPress={() => signOut()}>
-            <Ionicons name="log-out-outline" size={24} color={COLORS.white} />
+        <View className="flex-row gap-4">
+          <TouchableOpacity className="p-1" onPress={logout}>
+            <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.profileInfo}>
+        <View className="p-4">
           {/* AVATAR & STATS */}
-          <View style={styles.avatarAndStats}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={currentUser.image}
-                style={styles.avatar}
-                contentFit="cover"
-                transition={200}
-              />
+          <View className="flex-row items-center mb-4">
+            <View className="mr-8">
+              <View
+                className="w-[86px] h-[86px] rounded-full items-center justify-center"
+                style={{
+                  backgroundColor: "#2A2A2A",
+                  borderWidth: 2,
+                  borderColor: "#2A2A2A",
+                }}
+              >
+                <Text className="text-2xl text-white">
+                  {currentUser.name.charAt(0)}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{currentUser.posts}</Text>
-                <Text style={styles.statLabel}>Posts</Text>
+            <View className="flex-1">
+              <View className="mb-4">
+                <Text className="text-sm text-grey">Height</Text>
+                <Text className="text-lg font-bold text-white">
+                  {currentUser.heightCm} cm
+                </Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{currentUser.followers}</Text>
-                <Text style={styles.statLabel}>Followers</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{currentUser.following}</Text>
-                <Text style={styles.statLabel}>Following</Text>
+              <View>
+                <Text className="text-sm text-grey">Weight</Text>
+                <Text className="text-lg font-bold text-white">
+                  {currentUser.currentWeightKg} kg
+                </Text>
               </View>
             </View>
           </View>
 
-          <Text style={styles.name}>{currentUser.fullname}</Text>
-          {currentUser.bio && <Text style={styles.bio}>{currentUser.bio}</Text>}
+          <Text className="text-base font-semibold text-white mb-1">
+            {currentUser.name}
+          </Text>
+          <Text className="text-sm text-white mb-2">
+            Born: {currentUser.dateOfBirth}
+          </Text>
+          <Text className="text-sm text-white mb-4">
+            Gender: {currentUser.gender}
+          </Text>
 
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.editButton} onPress={() => setIsEditModalVisible(true)}>
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.shareButton}>
-              <Ionicons name="share-outline" size={20} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            className="bg-surface p-3 rounded-lg items-center"
+            onPress={() => setIsEditModalVisible(true)}
+          >
+            <Text className="text-white font-semibold">Edit Profile</Text>
+          </TouchableOpacity>
         </View>
-
-        {posts.length === 0 && <NoPostsFound />}
-
-        <FlatList
-          data={posts}
-          numColumns={3}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.gridItem} onPress={() => setSelectedPost(item)}>
-              <Image
-                source={item.imageUrl}
-                style={styles.gridImage}
-                contentFit="cover"
-                transition={200}
-              />
-            </TouchableOpacity>
-          )}
-        />
       </ScrollView>
 
       {/* EDIT PROFILE MODAL */}
@@ -129,87 +119,98 @@ export default function Profile() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalContainer}
+            className="flex-1 justify-end bg-black/50"
           >
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Profile</Text>
+            <View className="bg-background rounded-t-2xl p-5">
+              <View className="flex-row justify-between items-center mb-5">
+                <Text className="text-white text-lg font-semibold">
+                  Edit Profile
+                </Text>
                 <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-                  <Ionicons name="close" size={24} color={COLORS.white} />
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Name</Text>
+              <View className="mb-4">
+                <Text className="text-grey mb-2">Name</Text>
                 <TextInput
-                  style={styles.input}
-                  value={editedProfile.fullname}
-                  onChangeText={(text) => setEditedProfile((prev) => ({ ...prev, fullname: text }))}
-                  placeholderTextColor={COLORS.grey}
+                  className="bg-surface rounded-lg p-3 text-white"
+                  value={editedProfile.name}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({ ...prev, name: text }))
+                  }
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bio</Text>
+              <View className="mb-4">
+                <Text className="text-grey mb-2">Date of Birth</Text>
                 <TextInput
-                  style={[styles.input, styles.bioInput]}
-                  value={editedProfile.bio}
-                  onChangeText={(text) => setEditedProfile((prev) => ({ ...prev, bio: text }))}
-                  multiline
-                  numberOfLines={4}
-                  placeholderTextColor={COLORS.grey}
+                  className="bg-surface rounded-lg p-3 text-white"
+                  value={editedProfile.dateOfBirth}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({ ...prev, dateOfBirth: text }))
+                  }
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-                <Text style={styles.saveButtonText}>Save Changes</Text>
+              <View className="mb-4">
+                <Text className="text-grey mb-2">Gender</Text>
+                <TextInput
+                  className="bg-surface rounded-lg p-3 text-white"
+                  value={editedProfile.gender}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({ ...prev, gender: text }))
+                  }
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-grey mb-2">Height (cm)</Text>
+                <TextInput
+                  className="bg-surface rounded-lg p-3 text-white"
+                  value={String(editedProfile.heightCm)}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({
+                      ...prev,
+                      heightCm: Number(text) || 0,
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-grey mb-2">Weight (kg)</Text>
+                <TextInput
+                  className="bg-surface rounded-lg p-3 text-white"
+                  value={String(editedProfile.currentWeightKg)}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({
+                      ...prev,
+                      currentWeightKg: Number(text) || 0,
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <TouchableOpacity
+                className="bg-primary p-4 rounded-lg items-center mt-4"
+                onPress={handleSaveProfile}
+              >
+                <Text className="text-background font-semibold">
+                  Save Changes
+                </Text>
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </Modal>
-
-      {/* SELECTED IMAGE MODAL */}
-      <Modal
-        visible={!!selectedPost}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setSelectedPost(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          {selectedPost && (
-            <View style={styles.postDetailContainer}>
-              <View style={styles.postDetailHeader}>
-                <TouchableOpacity onPress={() => setSelectedPost(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.white} />
-                </TouchableOpacity>
-              </View>
-
-              <Image
-                source={selectedPost.imageUrl}
-                cachePolicy={"memory-disk"}
-                style={styles.postDetailImage}
-              />
-            </View>
-          )}
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
-function NoPostsFound() {
-  return (
-    <View
-      style={{
-        height: "100%",
-        backgroundColor: COLORS.background,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Ionicons name="images-outline" size={48} color={COLORS.primary} />
-      <Text style={{ fontSize: 20, color: COLORS.white }}>No posts yet</Text>
     </View>
   );
 }
