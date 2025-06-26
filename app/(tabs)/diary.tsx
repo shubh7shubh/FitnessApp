@@ -20,7 +20,12 @@ import { Stack, useRouter } from "expo-router";
 import PagerView, {
   PagerViewOnPageSelectedEvent,
 } from "react-native-pager-view";
-import { format, addDays, subDays, isToday } from "date-fns";
+import {
+  format,
+  addDays,
+  subDays,
+  isToday,
+} from "date-fns";
 import { Feather } from "@expo/vector-icons";
 
 import CalorieSummary from "@/modules/diary/components/CalorieSummary";
@@ -33,7 +38,9 @@ const DATE_NAVIGATOR_HEIGHT = 70;
 const CALORIE_SUMMARY_HEIGHT = 90;
 const SCROLL_THRESHOLD = 10;
 const TOTAL_FIXED_HEIGHT =
-  HEADER_HEIGHT + DATE_NAVIGATOR_HEIGHT + CALORIE_SUMMARY_HEIGHT;
+  HEADER_HEIGHT +
+  DATE_NAVIGATOR_HEIGHT +
+  CALORIE_SUMMARY_HEIGHT;
 
 // This is the content for a single day's page in the swiper
 const DiaryPage = React.memo(
@@ -52,15 +59,21 @@ const DiaryPage = React.memo(
 
     return (
       <FlatList
-        ListHeaderComponent={() => <View style={{ height: 24 }} />}
-        ListFooterComponent={() => <View style={{ height: 100 }} />}
+        ListHeaderComponent={() => (
+          <View style={{ height: 24 }} />
+        )}
+        ListFooterComponent={() => (
+          <View style={{ height: 15 }} />
+        )}
         data={[{ key: "diary" }]}
-        renderItem={() => <DiaryList dateString={dateString} />}
+        renderItem={() => (
+          <DiaryList dateString={dateString} />
+        )}
         keyExtractor={(item) => item.key}
         style={{ backgroundColor: colors.background }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: 40,
+          paddingBottom: 0,
           flexGrow: 1,
         }}
         onScroll={onScroll}
@@ -78,7 +91,9 @@ DiaryPage.displayName = "DiaryPage";
 
 // The main screen component for the "Diary" tab
 export default function DiaryTab() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(
+    new Date()
+  );
   const [isInitialized, setIsInitialized] = useState(false);
   const pagerRef = useRef<PagerView>(null);
   const colorScheme = useColorScheme() ?? "light";
@@ -87,10 +102,18 @@ export default function DiaryTab() {
   const { currentUser } = useAppStore();
 
   // Animated values for smooth transitions
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const dateNavigatorTranslateY = useRef(new Animated.Value(0)).current;
-  const calorieSummaryTranslateY = useRef(new Animated.Value(0)).current;
-  const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(
+    new Animated.Value(0)
+  ).current;
+  const dateNavigatorTranslateY = useRef(
+    new Animated.Value(0)
+  ).current;
+  const calorieSummaryTranslateY = useRef(
+    new Animated.Value(0)
+  ).current;
+  const contentTranslateY = useRef(
+    new Animated.Value(0)
+  ).current;
   const lastScrollY = useRef(0);
   const isHeaderVisible = useRef(true);
 
@@ -104,8 +127,8 @@ export default function DiaryTab() {
 
   // Optimize: Create only 21 pages (10 days before, today, 10 days after)
   const { dates, initialPage } = useMemo(() => {
-    const datesList = Array.from({ length: 21 }).map((_, i) =>
-      addDays(new Date(), i - 10)
+    const datesList = Array.from({ length: 21 }).map(
+      (_, i) => addDays(new Date(), i - 10)
     );
     return {
       dates: datesList,
@@ -118,15 +141,21 @@ export default function DiaryTab() {
     (event: any) => {
       if (!isInitialized) return;
 
-      const currentScrollY = event.nativeEvent.contentOffset.y;
-      const scrollDiff = currentScrollY - lastScrollY.current;
+      const currentScrollY =
+        event.nativeEvent.contentOffset.y;
+      const scrollDiff =
+        currentScrollY - lastScrollY.current;
 
       // Only animate if scroll difference is significant to avoid jittery animations
       if (Math.abs(scrollDiff) < SCROLL_THRESHOLD) {
         return;
       }
 
-      if (scrollDiff > 0 && currentScrollY > 50 && isHeaderVisible.current) {
+      if (
+        scrollDiff > 0 &&
+        currentScrollY > 50 &&
+        isHeaderVisible.current
+      ) {
         // Scrolling down - hide header and move other elements up
         isHeaderVisible.current = false;
 
@@ -152,7 +181,10 @@ export default function DiaryTab() {
             useNativeDriver: true,
           }),
         ]).start();
-      } else if (scrollDiff < 0 && !isHeaderVisible.current) {
+      } else if (
+        scrollDiff < 0 &&
+        !isHeaderVisible.current
+      ) {
         // Scrolling up - show header and move other elements back
         isHeaderVisible.current = true;
 
@@ -208,7 +240,9 @@ export default function DiaryTab() {
       if (!pagerRef.current) return;
 
       const currentIndex = dates.findIndex(
-        (d) => format(d, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
+        (d) =>
+          format(d, "yyyy-MM-dd") ===
+          format(currentDate, "yyyy-MM-dd")
       );
 
       if (currentIndex === -1) return;
@@ -235,7 +269,11 @@ export default function DiaryTab() {
         }}
       >
         <StatusBar
-          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          barStyle={
+            colorScheme === "dark"
+              ? "light-content"
+              : "dark-content"
+          }
           backgroundColor={colors.background}
         />
         <View
@@ -267,7 +305,11 @@ export default function DiaryTab() {
         }}
       >
         <StatusBar
-          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          barStyle={
+            colorScheme === "dark"
+              ? "light-content"
+              : "dark-content"
+          }
           backgroundColor={colors.background}
         />
         <View
@@ -288,7 +330,11 @@ export default function DiaryTab() {
       }}
     >
       <StatusBar
-        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        barStyle={
+          colorScheme === "dark"
+            ? "light-content"
+            : "dark-content"
+        }
         backgroundColor={colors.background}
       />
 
@@ -329,7 +375,11 @@ export default function DiaryTab() {
               backgroundColor: colors.surfaceElevated,
             }}
           >
-            <Feather name="arrow-left" size={18} color={colors.text.primary} />
+            <Feather
+              name="arrow-left"
+              size={18}
+              color={colors.text.primary}
+            />
           </Pressable>
 
           <Text
@@ -357,7 +407,9 @@ export default function DiaryTab() {
           paddingVertical: 10,
           paddingHorizontal: 20,
           zIndex: 25,
-          transform: [{ translateY: dateNavigatorTranslateY }],
+          transform: [
+            { translateY: dateNavigatorTranslateY },
+          ],
         }}
       >
         <View className="flex-row items-center justify-between flex-1">
@@ -378,16 +430,24 @@ export default function DiaryTab() {
           <View className="items-center">
             <Text
               style={{
-                color: isToday(currentDate) ? "#007AFF" : colors.text.primary,
-                fontWeight: isToday(currentDate) ? "700" : "600",
+                color: isToday(currentDate)
+                  ? "#007AFF"
+                  : colors.text.primary,
+                fontWeight: isToday(currentDate)
+                  ? "700"
+                  : "600",
               }}
               className="text-base"
             >
-              {isToday(currentDate) ? "Today" : format(currentDate, "EEEE")}
+              {isToday(currentDate)
+                ? "Today"
+                : format(currentDate, "EEEE")}
             </Text>
             <Text
               style={{
-                color: isToday(currentDate) ? "#007AFF" : colors.text.secondary,
+                color: isToday(currentDate)
+                  ? "#007AFF"
+                  : colors.text.secondary,
                 opacity: isToday(currentDate) ? 0.8 : 1,
               }}
               className="text-xs mt-0.5"
@@ -422,10 +482,14 @@ export default function DiaryTab() {
           height: CALORIE_SUMMARY_HEIGHT,
           zIndex: 20,
           backgroundColor: colors.surface,
-          transform: [{ translateY: calorieSummaryTranslateY }],
+          transform: [
+            { translateY: calorieSummaryTranslateY },
+          ],
         }}
       >
-        <CalorieSummary dateString={format(currentDate, "yyyy-MM-dd")} />
+        <CalorieSummary
+          dateString={format(currentDate, "yyyy-MM-dd")}
+        />
       </Animated.View>
 
       {/* Content Area with PagerView */}
