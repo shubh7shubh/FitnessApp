@@ -6,8 +6,7 @@ import { COLORS } from "@/constants/theme";
 import { QuickLogModal } from "@/modules/nutrition";
 
 export default function TabLayout(): React.ReactElement {
-  const [showQuickLogModal, setShowQuickLogModal] =
-    useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
 
   const CustomPlusButton = () => (
     <TouchableOpacity
@@ -39,8 +38,7 @@ export default function TabLayout(): React.ReactElement {
           tabBarShowLabel: false,
           headerShown: false,
           tabBarActiveTintColor: COLORS.light.primary,
-          tabBarInactiveTintColor:
-            COLORS.light.text.secondary,
+          tabBarInactiveTintColor: COLORS.light.text.secondary,
           tabBarStyle: {
             backgroundColor: "black",
             borderTopWidth: 0,
@@ -56,11 +54,7 @@ export default function TabLayout(): React.ReactElement {
           name="index"
           options={{
             tabBarIcon: ({ size, color }) => (
-              <Ionicons
-                name="home"
-                size={size}
-                color={color}
-              />
+              <Ionicons name="home" size={size} color={color} />
             ),
           }}
         />
@@ -68,35 +62,21 @@ export default function TabLayout(): React.ReactElement {
           name="diary"
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Ionicons
-                name="bookmark"
-                size={size}
-                color={color}
-              />
+              <Ionicons name="bookmark" size={size} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="create"
           options={{
-            tabBarIcon: () => <CustomPlusButton />,
-          }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              setShowQuickLogModal(true);
-            },
+            tabBarButton: () => <CustomPlusButton />,
           }}
         />
         <Tabs.Screen
           name="notifications"
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Ionicons
-                name="heart"
-                size={size}
-                color={color}
-              />
+              <Ionicons name="heart" size={size} color={color} />
             ),
           }}
         />
@@ -104,11 +84,7 @@ export default function TabLayout(): React.ReactElement {
           name="profile"
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Ionicons
-                name="person-circle"
-                size={size}
-                color={color}
-              />
+              <Ionicons name="person-circle" size={size} color={color} />
             ),
           }}
         />

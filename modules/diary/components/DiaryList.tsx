@@ -1,13 +1,15 @@
 // src/modules/diary/components/DiaryList.tsx
 
 import React, { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import withObservables from "@nozbe/with-observables";
 import { Q } from "@nozbe/watermelondb";
 import { database } from "@/db";
 import { DiaryEntry } from "@/db/models/DiaryEntry";
 import { Food } from "@/db/models/Food";
 import { useAppStore } from "@/stores/appStore";
+import { COLORS } from "@/constants/theme";
 import MealSection, { DisplayFoodItem } from "./MealSection";
 import { MealType } from "@/modules/nutrition/types";
 
@@ -118,6 +120,22 @@ const BaseDiaryList = ({
     snacks: mealsData.snacks.length,
   });
 
+  // Placeholder functions for button actions
+  const handleNutritionPress = () => {
+    console.log("Nutrition button pressed");
+    // TODO: Open nutrition drawer/modal
+  };
+
+  const handleNotesPress = () => {
+    console.log("Notes button pressed");
+    // TODO: Open notes drawer/modal
+  };
+
+  const handleCompleteDiaryPress = () => {
+    console.log("Complete Diary button pressed");
+    // TODO: Complete diary action
+  };
+
   return (
     <View style={{ paddingTop: 24, paddingHorizontal: 0 }}>
       <MealSection
@@ -140,6 +158,74 @@ const BaseDiaryList = ({
         items={mealsData.snacks}
         dateString={dateString}
       />
+
+      {/* Action Buttons Section */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 12 }}>
+        {/* Top Row - Nutrition and Notes */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <TouchableOpacity
+            onPress={handleNutritionPress}
+            style={{
+              flex: 1,
+              backgroundColor: "#2A2D3A",
+              borderRadius: 12,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <Ionicons name="pie-chart" size={20} color="#3B82F6" />
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "500" }}>
+              Nutrition
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleNotesPress}
+            style={{
+              flex: 1,
+              backgroundColor: "#2A2D3A",
+              borderRadius: 12,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <Ionicons
+              name="document-text"
+              size={20}
+              color={COLORS.light.primary}
+            />
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "500" }}>
+              Notes
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Row - Complete Diary */}
+        <TouchableOpacity
+          onPress={handleCompleteDiaryPress}
+          style={{
+            backgroundColor: "#3B82F6",
+            borderRadius: 12,
+            padding: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <Ionicons name="checkmark-circle" size={20} color="white" />
+          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
+            Complete Diary
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* We can add the ExerciseSection here in the same way later */}
     </View>
   );
