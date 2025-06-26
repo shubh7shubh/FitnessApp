@@ -1,5 +1,3 @@
-// features/auth/screens/CreateProfileScreen.tsx
-
 import React, { useState } from "react";
 import {
   View,
@@ -11,7 +9,6 @@ import {
   ScrollView,
 } from "react-native";
 
-// Import our database action and Zustand store action
 import { createUser } from "@/db/actions/userActions";
 import { useAppStore } from "@/stores/appStore";
 
@@ -22,19 +19,31 @@ export default function CreateProfileScreen() {
   // State to hold the form data
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState(""); // e.g., '1990-01-15'
-  const [gender, setGender] = useState<"male" | "female" | "other">("male");
+  const [gender, setGender] = useState<
+    "male" | "female" | "other"
+  >("male");
   const [heightCm, setHeightCm] = useState("");
-  const [currentWeightKg, setCurrentWeightKg] = useState("");
+  const [currentWeightKg, setCurrentWeightKg] =
+    useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activityLevel, setActivityLevel] = useState("sedentary");
+  const [activityLevel, setActivityLevel] =
+    useState("sedentary");
   const [goalType, setGoalType] = useState("maintain");
 
   // Function to handle the form submission
   const handleCreateProfile = async () => {
     // Basic validation
-    if (!name || !dateOfBirth || !heightCm || !currentWeightKg) {
-      Alert.alert("Missing Information", "Please fill out all fields.");
+    if (
+      !name ||
+      !dateOfBirth ||
+      !heightCm ||
+      !currentWeightKg
+    ) {
+      Alert.alert(
+        "Missing Information",
+        "Please fill out all fields."
+      );
       return;
     }
 
@@ -58,11 +67,16 @@ export default function CreateProfileScreen() {
         await newUser.setupInitialGoals();
         setCurrentUser(newUser);
       } else {
-        throw new Error("User creation returned undefined.");
+        throw new Error(
+          "User creation returned undefined."
+        );
       }
     } catch (error) {
       console.error("Failed to create profile:", error);
-      Alert.alert("Error", "Could not create your profile. Please try again.");
+      Alert.alert(
+        "Error",
+        "Could not create your profile. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +84,9 @@ export default function CreateProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Let's set up your profile</Text>
+      <Text style={styles.title}>
+        Let's set up your profile
+      </Text>
       <Text style={styles.subtitle}>
         This helps us calculate your personalized goals.
       </Text>
@@ -97,7 +113,9 @@ export default function CreateProfileScreen() {
         placeholder="Gender (male/female/other)"
         placeholderTextColor="#888"
         value={gender}
-        onChangeText={(text) => setGender(text as "male" | "female" | "other")}
+        onChangeText={(text) =>
+          setGender(text as "male" | "female" | "other")
+        }
       />
       <TextInput
         style={styles.input}
@@ -132,7 +150,11 @@ export default function CreateProfileScreen() {
 
       <View style={styles.buttonContainer}>
         <Button
-          title={isSubmitting ? "Creating Profile..." : "Get Started"}
+          title={
+            isSubmitting
+              ? "Creating Profile..."
+              : "Get Started"
+          }
           onPress={handleCreateProfile}
           disabled={isSubmitting}
           color="#10B981" // A nice green color

@@ -54,6 +54,7 @@ export const foodModelToItem = (food: any): FoodItem => ({
     protein: food.protein_g || 0,
     carbs: food.carbs_g || 0,
     fat: food.fat_g || 0,
+    fiber: food.fiber_g || 0,
   },
   isVerified: true, // All local foods are considered verified
 });

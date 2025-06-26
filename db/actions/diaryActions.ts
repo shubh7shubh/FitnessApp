@@ -68,6 +68,7 @@ export const logFoodToDiary = async (options: {
         entry.protein_g = food.protein_g * servings;
         entry.carbs_g = food.carbs_g * servings;
         entry.fat_g = food.fat_g * servings;
+        entry.fiber_g = food.fiber_g * servings;
       });
 
       console.log(`💾 Created diary entry:`, {

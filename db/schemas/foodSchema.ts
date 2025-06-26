@@ -10,7 +10,8 @@ export const foodSchema = tableSchema({
     { name: "protein_g", type: "number" },
     { name: "carbs_g", type: "number" },
     { name: "fat_g", type: "number" },
-    // We can add more nutrients like fiber, sugar, etc., later
+    { name: "fiber_g", type: "number" },
+    // We can add more nutrients like sugar, etc., later
     { name: "serving_size", type: "number" },
     { name: "serving_unit", type: "string" }, // e.g., 'g', 'ml', 'slice'
   ],
