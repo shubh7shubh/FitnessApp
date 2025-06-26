@@ -14,11 +14,7 @@ export class DiaryEntry extends Model {
   static table = "diary_entries";
 
   @text("date") date!: string;
-  @text("meal_type") mealType!:
-    | "breakfast"
-    | "lunch"
-    | "dinner"
-    | "snacks";
+  @text("meal_type") mealType!: "breakfast" | "lunch" | "dinner" | "snacks";
   @field("servings") servings!: number;
 
   // These denormalized fields are for quick access
@@ -26,6 +22,7 @@ export class DiaryEntry extends Model {
   @field("protein_g") protein_g!: number;
   @field("carbs_g") carbs_g!: number;
   @field("fat_g") fat_g!: number;
+  @field("fiber_g") fiber_g!: number;
 
   @text("user_id") userId!: string;
   @text("food_id") foodId!: string;

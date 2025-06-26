@@ -35,6 +35,7 @@ export const userSchema = tableSchema({
     { name: "protein_goal_g", type: "number", isOptional: true },
     { name: "carbs_goal_g", type: "number", isOptional: true },
     { name: "fat_goal_g", type: "number", isOptional: true },
+    { name: "fiber_goal_g", type: "number", isOptional: true },
 
     { name: "created_at", type: "number" },
     // 'updated_at' stores the last time the record was changed.

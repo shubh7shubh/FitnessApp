@@ -10,7 +10,7 @@ export const myAppSchema = appSchema({
   // The version number is very important. Any time you change the schema
   // (e.g., add a new column to users), you MUST increase this number.
   // This tells WatermelonDB to update the database structure on the user's device.
-  version: 2,
+  version: 3,
 
   // This is the list of all tables in our database. For now, it's just one.
   tables: [userSchema, foodSchema, diaryEntrySchema],

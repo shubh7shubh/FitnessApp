@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import withObservables from "@nozbe/with-observables";
 import { Q } from "@nozbe/watermelondb";
 import { database } from "@/db";
@@ -29,6 +30,7 @@ const BaseDiaryList = ({
   dateString,
 }: InputProps & ObservableProps) => {
   const [foodsMap, setFoodsMap] = useState<Record<string, Food>>({});
+  const router = useRouter();
 
   // Load food data when entries change
   useEffect(() => {
@@ -123,7 +125,7 @@ const BaseDiaryList = ({
   // Placeholder functions for button actions
   const handleNutritionPress = () => {
     console.log("Nutrition button pressed");
-    // TODO: Open nutrition drawer/modal
+    router.push("/nutrition" as any);
   };
 
   const handleNotesPress = () => {

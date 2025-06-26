@@ -19,5 +19,6 @@ export const diaryEntrySchema = tableSchema({
     { name: "protein_g", type: "number" },
     { name: "carbs_g", type: "number" },
     { name: "fat_g", type: "number" },
+    { name: "fiber_g", type: "number" },
   ],
 });

@@ -1,14 +1,7 @@
-// db/models/User.ts
-
 import { Model } from "@nozbe/watermelondb";
 import { children } from "@nozbe/watermelondb/decorators";
 import { DiaryEntry } from "./DiaryEntry";
-import {
-  date,
-  readonly,
-  text,
-  field,
-} from "@nozbe/watermelondb/decorators";
+import { date, readonly, text, field } from "@nozbe/watermelondb/decorators";
 import { database } from "..";
 
 // The 'User' class extends WatermelonDB's Model.
@@ -43,6 +36,7 @@ export class User extends Model {
   @field("protein_goal_g") proteinGoal_g?: number;
   @field("carbs_goal_g") carbsGoal_g?: number;
   @field("fat_goal_g") fatGoal_g?: number;
+  @field("fiber_goal_g") fiberGoal_g?: number;
 
   @readonly @date("created_at") createdAt!: Date;
   @readonly @date("updated_at") updatedAt!: Date;
@@ -60,12 +54,10 @@ export class User extends Model {
     const birthDate = new Date(this.dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDifference =
-      today.getMonth() - birthDate.getMonth();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
     if (
       monthDifference < 0 ||
-      (monthDifference === 0 &&
-        today.getDate() < birthDate.getDate())
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
     ) {
       age--;
     }
@@ -73,24 +65,13 @@ export class User extends Model {
   }
 
   calculateBMR(): number {
-    if (
-      !this.age ||
-      !this.heightCm ||
-      !this.currentWeightKg
-    )
-      return 0;
+    if (!this.age || !this.heightCm || !this.currentWeightKg) return 0;
 
     // Mifflin-St Jeor Equation
     const bmr =
       this.gender === "male"
-        ? 10 * this.currentWeightKg +
-          6.25 * this.heightCm -
-          5 * this.age +
-          5
-        : 10 * this.currentWeightKg +
-          6.25 * this.heightCm -
-          5 * this.age -
-          161;
+        ? 10 * this.currentWeightKg + 6.25 * this.heightCm - 5 * this.age + 5
+        : 10 * this.currentWeightKg + 6.25 * this.heightCm - 5 * this.age - 161;
 
     return Math.round(bmr);
   }
@@ -103,9 +84,7 @@ export class User extends Model {
       moderately_active: 1.55,
       very_active: 1.725,
     };
-    return Math.round(
-      bmr * multipliers[this.activityLevel]
-    );
+    return Math.round(bmr * multipliers[this.activityLevel]);
   }
 
   async setupInitialGoals(): Promise<void> {
@@ -120,15 +99,12 @@ export class User extends Model {
     }
 
     // Calculate macros (simple 30% protein, 40% carbs, 30% fat)
-    const proteinGoal = Math.round(
-      (dailyCalorieGoal * 0.3) / 4
-    );
-    const carbsGoal = Math.round(
-      (dailyCalorieGoal * 0.4) / 4
-    );
-    const fatGoal = Math.round(
-      (dailyCalorieGoal * 0.3) / 9
-    );
+    const proteinGoal = Math.round((dailyCalorieGoal * 0.3) / 4);
+    const carbsGoal = Math.round((dailyCalorieGoal * 0.4) / 4);
+    const fatGoal = Math.round((dailyCalorieGoal * 0.3) / 9);
+
+    // Set fiber goal based on dietary guidelines (25g for women, 38g for men)
+    const fiberGoal = this.gender === "male" ? 38 : 25;
 
     await database.write(async () => {
       await this.update(() => {
@@ -137,8 +113,8 @@ export class User extends Model {
         this.proteinGoal_g = proteinGoal;
         this.carbsGoal_g = carbsGoal;
         this.fatGoal_g = fatGoal;
-        this.goalRateKgPerWeek =
-          this.goalType === "maintain" ? 0 : 0.5;
+        this.fiberGoal_g = fiberGoal;
+        this.goalRateKgPerWeek = this.goalType === "maintain" ? 0 : 0.5;
       });
     });
   }
