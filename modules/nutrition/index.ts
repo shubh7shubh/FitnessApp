@@ -2,7 +2,10 @@
 export { QuickLogModal } from "./components/QuickLogModal";
 export { FoodSearchScreen } from "./components/FoodSearchScreen";
 export { FoodItemCard } from "./components/FoodItemCard";
-export { NutritionSummary } from "./components/NutritionSummary";
+export { NutritionTabs } from "./components/NutritionTabs";
+export { CaloriesTab } from "./components/CaloriesTab";
+export { NutrientsTab } from "./components/NutrientsTab";
+export { MacrosTab } from "./components/MacrosTab";
 
 // Hooks
 export { useNutrition } from "./hooks/useNutrition";

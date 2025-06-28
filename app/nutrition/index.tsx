@@ -6,6 +6,7 @@ import {
   useColorScheme,
   StatusBar,
   Animated,
+  Dimensions,
 } from "react-native";
 import React, {
   useState,
@@ -23,35 +24,50 @@ import { Feather } from "@expo/vector-icons";
 
 import { useAppStore } from "@/stores/appStore";
 import { COLORS } from "@/constants/theme";
-import { NutritionSummary } from "@/modules/nutrition";
+import { CaloriesTab, MacrosTab, NutrientsTab } from "@/modules/nutrition";
 
 const HEADER_HEIGHT = 64;
+const TABS_HEIGHT = 50;
 const DATE_NAVIGATOR_HEIGHT = 70;
-const NUTRITION_SUMMARY_HEIGHT = 90;
-const TOTAL_FIXED_HEIGHT =
-  HEADER_HEIGHT + DATE_NAVIGATOR_HEIGHT + NUTRITION_SUMMARY_HEIGHT;
+
+type TabType = "calories" | "nutrients" | "macros";
 
 // This is the content for a single day's page in the swiper
 const NutritionPage = React.memo(
   ({
     dateString,
     colorScheme,
+    activeTab,
   }: {
     dateString: string;
     colorScheme: "light" | "dark";
+    activeTab: TabType;
   }) => {
     const colors = COLORS[colorScheme];
+
+    const renderTabContent = useCallback(() => {
+      switch (activeTab) {
+        case "calories":
+          return <CaloriesTab dateString={dateString} />;
+        case "macros":
+          return <MacrosTab dateString={dateString} />;
+        case "nutrients":
+          return <NutrientsTab dateString={dateString} />;
+        default:
+          return <CaloriesTab dateString={dateString} />;
+      }
+    }, [activeTab, dateString]);
 
     return (
       <View
         style={{
           flex: 1,
           backgroundColor: colors.background,
-          paddingTop: 24,
+          paddingTop: 16,
           paddingHorizontal: 16,
         }}
       >
-        <NutritionSummary dateString={dateString} />
+        {renderTabContent()}
       </View>
     );
   }
@@ -62,6 +78,7 @@ NutritionPage.displayName = "NutritionPage";
 // The main nutrition screen
 export default function NutritionScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<TabType>("calories");
   const pagerRef = useRef<PagerView>(null);
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
@@ -70,8 +87,22 @@ export default function NutritionScreen() {
 
   // Animated values for smooth transitions
   const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const tabsTranslateY = useRef(new Animated.Value(0)).current;
   const dateNavigatorTranslateY = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
+  const tabContentOpacity = useRef(new Animated.Value(1)).current;
+
+  // Tab configuration
+  const tabs = [
+    { id: "calories" as TabType, label: "CALORIES" },
+    { id: "nutrients" as TabType, label: "NUTRIENTS" },
+    { id: "macros" as TabType, label: "MACROS" },
+  ];
+
+  // Get screen width for indicator animation
+  const { width: screenWidth } = Dimensions.get("window");
+  const tabWidth = screenWidth / tabs.length;
 
   // Optimize: Create only 21 pages (10 days before, today, 10 days after)
   const { dates, initialPage } = useMemo(() => {
@@ -83,6 +114,40 @@ export default function NutritionScreen() {
       initialPage: 10, // Index of today's date
     };
   }, []);
+
+  // Handle tab change with smooth animation
+  const handleTabChange = useCallback(
+    (tab: TabType) => {
+      if (tab === activeTab) return;
+
+      const tabIndex = tabs.findIndex((t) => t.id === tab);
+
+      // Animate tab indicator
+      Animated.spring(tabIndicatorPosition, {
+        toValue: tabIndex,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+
+      // Animate content transition
+      Animated.sequence([
+        Animated.timing(tabContentOpacity, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tabContentOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      setActiveTab(tab);
+    },
+    [activeTab, tabIndicatorPosition, tabContentOpacity, tabs]
+  );
 
   // When the user swipes, this updates our state
   const onPageSelected = useCallback(
@@ -118,6 +183,12 @@ export default function NutritionScreen() {
     [dates, currentDate]
   );
 
+  // Initialize tab indicator position
+  useEffect(() => {
+    const initialTabIndex = tabs.findIndex((t) => t.id === activeTab);
+    tabIndicatorPosition.setValue(initialTabIndex);
+  }, []);
+
   // Show authentication check
   if (!currentUser) {
     return (
@@ -150,8 +221,6 @@ export default function NutritionScreen() {
       </SafeAreaView>
     );
   }
-
-  // Remove the unnecessary loading screen
 
   return (
     <SafeAreaView
@@ -216,11 +285,73 @@ export default function NutritionScreen() {
         </View>
       </Animated.View>
 
-      {/* Animated Date Navigator */}
+      {/* Animated Tabs */}
       <Animated.View
         style={{
           position: "absolute",
           top: HEADER_HEIGHT,
+          left: 0,
+          right: 0,
+          height: TABS_HEIGHT,
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          zIndex: 25,
+          transform: [{ translateY: tabsTranslateY }],
+        }}
+      >
+        <View className="flex-row flex-1">
+          {tabs.map((tab, index) => (
+            <Pressable
+              key={tab.id}
+              onPress={() => handleTabChange(tab.id)}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 12,
+              }}
+            >
+              <Text
+                style={{
+                  color:
+                    activeTab === tab.id ? "#007AFF" : colors.text.secondary,
+                  fontWeight: activeTab === tab.id ? "600" : "normal",
+                  fontSize: 14,
+                }}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Animated Blue Indicator Line */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            height: 2,
+            backgroundColor: "#007AFF",
+            width: tabWidth,
+            transform: [
+              {
+                translateX: tabIndicatorPosition.interpolate({
+                  inputRange: [0, tabs.length - 1],
+                  outputRange: [0, (tabs.length - 1) * tabWidth],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          }}
+        />
+      </Animated.View>
+
+      {/* Animated Date Navigator */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: HEADER_HEIGHT + TABS_HEIGHT,
           left: 0,
           right: 0,
           height: DATE_NAVIGATOR_HEIGHT,
@@ -229,7 +360,7 @@ export default function NutritionScreen() {
           borderBottomColor: colors.border,
           paddingVertical: 10,
           paddingHorizontal: 20,
-          zIndex: 25,
+          zIndex: 20,
           transform: [{ translateY: dateNavigatorTranslateY }],
         }}
       >
@@ -290,10 +421,15 @@ export default function NutritionScreen() {
         style={{
           flex: 1,
           backgroundColor: colors.background,
+          opacity: tabContentOpacity,
           transform: [{ translateY: contentTranslateY }],
         }}
       >
-        <View style={{ height: HEADER_HEIGHT + DATE_NAVIGATOR_HEIGHT }} />
+        <View
+          style={{
+            height: HEADER_HEIGHT + TABS_HEIGHT + DATE_NAVIGATOR_HEIGHT,
+          }}
+        />
         <PagerView
           ref={pagerRef}
           style={{ flex: 1 }}
@@ -313,6 +449,7 @@ export default function NutritionScreen() {
               <NutritionPage
                 dateString={format(date, "yyyy-MM-dd")}
                 colorScheme={colorScheme}
+                activeTab={activeTab}
               />
             </View>
           ))}
