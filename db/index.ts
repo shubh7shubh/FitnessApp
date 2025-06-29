@@ -8,6 +8,7 @@ import { myAppSchema } from "./schemas/index";
 import { User } from "./models/User";
 import { Food } from "./models/Food";
 import { DiaryEntry } from "./models/DiaryEntry";
+import { WeightEntry } from "./models/WeightEntry";
 
 // --- Step 1: Create the Adapter ---
 // The adapter is the bridge between WatermelonDB's logic and the
@@ -30,5 +31,5 @@ const adapter = new SQLiteAdapter({
 // of all the model classes it needs to be aware of.
 export const database = new Database({
   adapter,
-  modelClasses: [User, Food, DiaryEntry],
+  modelClasses: [User, Food, DiaryEntry, WeightEntry],
 });
