@@ -73,10 +73,11 @@ export default function TabLayout(): React.ReactElement {
           }}
         />
         <Tabs.Screen
-          name="notifications"
+          name="progress"
           options={{
+            headerShown: true,
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="heart" size={size} color={color} />
+              <Ionicons name="trending-up" size={size} color={color} />
             ),
           }}
         />

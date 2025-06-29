@@ -4,10 +4,7 @@ import "../global.css";
 import { useCallback, useEffect } from "react";
 import { useFonts } from "expo-font";
 import { SplashScreen, Slot, Stack } from "expo-router";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Platform, View } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
@@ -24,12 +21,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   // --- State from our Zustand store ---
-  const {
-    isLoading,
-    isAuthenticated,
-    setCurrentUser,
-    setLoading,
-  } = useAppStore();
+  const { isLoading, isAuthenticated, setCurrentUser, setLoading } =
+    useAppStore();
 
   // Font loading
   const [fontsLoaded] = useFonts({
@@ -82,16 +75,11 @@ export default function RootLayout() {
   return (
     <DatabaseProvider>
       <SafeAreaProvider>
-        <SafeAreaView
-          className="flex-1 bg-black"
-          onLayout={onLayoutRootView}
-        >
+        <SafeAreaView className="flex-1 bg-black" onLayout={onLayoutRootView}>
           {isAuthenticated ? (
             <Stack>
-              <Stack.Screen
-                name="(tabs)"
-                options={{ headerShown: false }}
-              />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(modals)" options={{ headerShown: false }} />
             </Stack>
           ) : (
             <CreateProfileScreen />
