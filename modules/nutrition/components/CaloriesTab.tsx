@@ -25,12 +25,7 @@ const BaseCaloriesTab = ({
   const colors = COLORS[colorScheme];
 
   // Memoize calculations to prevent unnecessary re-renders
-  const {
-    pieData,
-    mealBreakdown,
-    totalCalories,
-    summaryData,
-  } = useMemo(() => {
+  const { pieData, mealBreakdown, totalCalories, summaryData } = useMemo(() => {
     // Calculate meal totals
     const mealTotals = diaryEntries.reduce(
       (acc, entry) => {
@@ -45,8 +40,7 @@ const BaseCaloriesTab = ({
       0
     );
 
-    const caloriesGoal =
-      currentUser?.dailyCalorieGoal || 2000;
+    const caloriesGoal = currentUser?.dailyCalorieGoal || 2000;
     const caloriesBurned = 0; // TODO: Add exercise tracking
     const netCalories = totalCalories - caloriesBurned;
     const remaining = caloriesGoal - netCalories;
@@ -104,36 +98,28 @@ const BaseCaloriesTab = ({
         name: "Breakfast",
         calories: mealTotals.breakfast,
         percentage:
-          totalCalories > 0
-            ? (mealTotals.breakfast / totalCalories) * 100
-            : 0,
+          totalCalories > 0 ? (mealTotals.breakfast / totalCalories) * 100 : 0,
         color: mealColors.breakfast,
       },
       {
         name: "Lunch",
         calories: mealTotals.lunch,
         percentage:
-          totalCalories > 0
-            ? (mealTotals.lunch / totalCalories) * 100
-            : 0,
+          totalCalories > 0 ? (mealTotals.lunch / totalCalories) * 100 : 0,
         color: mealColors.lunch,
       },
       {
         name: "Dinner",
         calories: mealTotals.dinner,
         percentage:
-          totalCalories > 0
-            ? (mealTotals.dinner / totalCalories) * 100
-            : 0,
+          totalCalories > 0 ? (mealTotals.dinner / totalCalories) * 100 : 0,
         color: mealColors.dinner,
       },
       {
         name: "Snacks",
         calories: mealTotals.snacks,
         percentage:
-          totalCalories > 0
-            ? (mealTotals.snacks / totalCalories) * 100
-            : 0,
+          totalCalories > 0 ? (mealTotals.snacks / totalCalories) * 100 : 0,
         color: mealColors.snacks,
       },
     ].filter((meal) => meal.calories > 0);
@@ -191,9 +177,7 @@ const BaseCaloriesTab = ({
         }}
       >
         {/* Center the pie chart */}
-        <View
-          style={{ alignItems: "center", marginBottom: 20 }}
-        >
+        <View style={{ alignItems: "center", marginBottom: 20 }}>
           <PieChart
             data={pieData}
             radius={80} // Change this value to increase/decrease size
@@ -318,10 +302,7 @@ const BaseCaloriesTab = ({
           >
             Goal
           </Text>
-          <Text
-            style={{ color: "#007AFF" }}
-            className="text-xl font-bold"
-          >
+          <Text style={{ color: "#007AFF" }} className="text-xl font-bold">
             {summaryData.caloriesGoal.toLocaleString()}
           </Text>
         </View>
@@ -360,14 +341,11 @@ const BaseCaloriesTab = ({
 
 // Optimized component with observables and memoization
 export const CaloriesTab = React.memo(
-  withObservables(
-    ["dateString"],
-    ({ dateString }: CaloriesTabProps) => ({
-      diaryEntries: database.collections
-        .get<DiaryEntry>("diary_entries")
-        .query(Q.where("date", dateString)),
-    })
-  )(BaseCaloriesTab)
+  withObservables(["dateString"], ({ dateString }: CaloriesTabProps) => ({
+    diaryEntries: database.collections
+      .get<DiaryEntry>("diary_entries")
+      .query(Q.where("date", dateString)),
+  }))(BaseCaloriesTab)
 );
 
 // Add display name for debugging

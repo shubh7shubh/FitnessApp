@@ -1,9 +1,4 @@
-import {
-  View,
-  Text,
-  useColorScheme,
-  ScrollView,
-} from "react-native";
+import { View, Text, useColorScheme, ScrollView } from "react-native";
 import React, { useMemo } from "react";
 import withObservables from "@nozbe/with-observables";
 import { Q } from "@nozbe/watermelondb";
@@ -39,8 +34,7 @@ const NutrientRow = ({
   const colors = COLORS[colorScheme];
 
   const remaining = Math.max(0, goal - total);
-  const percentage =
-    goal > 0 ? Math.min(100, (total / goal) * 100) : 0;
+  const percentage = goal > 0 ? Math.min(100, (total / goal) * 100) : 0;
 
   return (
     <View
@@ -128,9 +122,7 @@ const BaseNutrientsTab = ({
     };
 
     const isEmpty =
-      totals.protein === 0 &&
-      totals.carbs === 0 &&
-      totals.fiber === 0;
+      totals.protein === 0 && totals.carbs === 0 && totals.fiber === 0;
 
     return { totals, goals, isEmpty };
   }, [diaryEntries, currentUser]);
@@ -138,10 +130,7 @@ const BaseNutrientsTab = ({
   // Show empty state immediately
   if (isEmpty) {
     return (
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View
           style={{
             backgroundColor: colors.surface,
