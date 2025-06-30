@@ -11,6 +11,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
+import { format } from "date-fns/format";
+import { Q } from "@nozbe/watermelondb";
+import { database } from "@/db/index";
+import { DiaryEntry } from "@/db/models/DiaryEntry";
+
 // Import from our new modular structure
 import { HeroSection } from "@/modules/home/components/HeroSection";
 import { PlansBanner } from "@/modules/home/components/PlansBanner";
@@ -29,8 +34,10 @@ export default function Index(): JSX.Element {
   const { colors } = useTheme();
   const { refreshData, isLoading } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] =
+    useState(false);
   const { currentUser } = useAppStore();
+  const { todayStats, updateTodayStats } = useHomeStore();
 
   // --- 2. ADD THIS LOGIC TO FETCH PRODUCT DATA ---
   const { fetchProducts } = useProductsStore();
@@ -38,6 +45,40 @@ export default function Index(): JSX.Element {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const todayString = format(new Date(), "yyyy-MM-dd");
+
+    // 1. Create the observable query for today's diary entries
+    const entriesObservable = database.collections
+      .get<DiaryEntry>("diary_entries")
+      .query(
+        Q.where("date", todayString),
+        Q.where("user_id", currentUser.id)
+      )
+      .observe();
+
+    // 2. Subscribe to it. This code runs whenever today's diary changes.
+    const subscription = entriesObservable.subscribe(
+      (entries) => {
+        console.log(
+          `[Home Screen Bridge] Detected ${entries.length} entries for today.`
+        );
+
+        // 3. Call the Zustand action to update the hero section stats
+        updateTodayStats(entries, currentUser);
+      }
+    );
+
+    // 4. Cleanup function to prevent memory leaks
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [currentUser, updateTodayStats]);
 
   const onRefresh = async (): Promise<void> => {
     setRefreshing(true);
@@ -48,8 +89,6 @@ export default function Index(): JSX.Element {
   const handleProfilePress = (): void => {
     router.push("/(tabs)/profile");
   };
-
-  if (isLoading) return <Loader />;
 
   const quickActions = [
     {
@@ -79,7 +118,10 @@ export default function Index(): JSX.Element {
   ];
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <View
+      className="flex-1"
+      style={{ backgroundColor: colors.background }}
+    >
       {/* HEADER */}
       <View
         className="flex-row justify-between items-center px-6 py-4 pt-3"
@@ -96,7 +138,10 @@ export default function Index(): JSX.Element {
           >
             FitNext
           </Text>
-          <Text className="text-sm" style={{ color: colors.text.secondary }}>
+          <Text
+            className="text-sm"
+            style={{ color: colors.text.secondary }}
+          >
             Your fitness journey
           </Text>
         </View>
