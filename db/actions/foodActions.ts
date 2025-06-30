@@ -3,7 +3,8 @@ import { database } from "../index";
 import { Food } from "../models/Food";
 import { Q } from "@nozbe/watermelondb";
 
-const foodsCollection = database.collections.get<Food>("foods");
+const foodsCollection =
+  database.collections.get<Food>("foods");
 
 // Our dummy food data
 const DUMMY_FOODS = [
@@ -17,7 +18,7 @@ const DUMMY_FOODS = [
     fiber_g: 4.0,
     servingSize: 1,
     servingUnit: "medium",
-  },
+  }, //df
   {
     name: "Chicken Breast",
     brand: "Generic",
@@ -81,7 +82,9 @@ const DUMMY_FOODS = [
  */
 export const seedFoodDatabase = async () => {
   await database.write(async () => {
-    const existingFood = await foodsCollection.query(Q.take(1)).fetch();
+    const existingFood = await foodsCollection
+      .query(Q.take(1))
+      .fetch();
     if (existingFood.length > 0) {
       console.log("✅ Food database already seeded.");
       return;
@@ -95,6 +98,8 @@ export const seedFoodDatabase = async () => {
     );
 
     await database.batch(...creations);
-    console.log(`✅ Seeded ${creations.length} food items.`);
+    console.log(
+      `✅ Seeded ${creations.length} food items.`
+    );
   });
 };
