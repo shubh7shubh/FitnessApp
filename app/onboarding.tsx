@@ -2,23 +2,17 @@ import React, { useRef, useState } from "react";
 import { View, SafeAreaView, Pressable, Text } from "react-native";
 import PagerView from "react-native-pager-view";
 import { Stack, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { GenderAgeScreen } from "@/modules/onboarding/components/screens/GenderAgeScreen";
 import { GoalScreen } from "@/modules/onboarding/components/screens/GoalScreen";
 import { useAppStore } from "@/stores/appStore";
-
-const OnboardingProgressBar = ({ progress }: { progress: number }) => (
-  <View className="h-1 bg-gray-700 rounded-full mx-6">
-    <View
-      style={{ width: `${progress * 100}%` }}
-      className="h-1 bg-blue-500 rounded-full"
-    />
-  </View>
-);
+import { useTheme } from "@/modules/home/hooks/useTheme";
 
 export default function OnboardingFlow() {
   const pagerRef = useRef<PagerView>(null);
   const router = useRouter();
+  const { isDark } = useTheme();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState<string>("lose_weight");
   const [genderAgeData, setGenderAgeData] = useState<{
@@ -30,6 +24,11 @@ export default function OnboardingFlow() {
   });
   const { setOnboardingComplete, setSelectedGoal: setStoreGoal } =
     useAppStore();
+
+  // Theme configuration to match GenderAgeScreen
+  const backgroundColors = isDark
+    ? (["#0F172A", "#1E293B"] as const)
+    : (["#FFFFFF", "#FDF2F8"] as const); // White to light pink
 
   const handleGenderAgeSelect = (data: { gender: string; age: number }) => {
     setGenderAgeData(data);
@@ -84,54 +83,99 @@ export default function OnboardingFlow() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
-      <Stack.Screen options={{ headerShown: false }} />
+    <LinearGradient colors={backgroundColors} style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Progress Bar */}
-      <View className="my-4">
-        <OnboardingProgressBar progress={(currentPage + 1) / totalPages} />
-      </View>
-
-      {/* Page Content */}
-      <PagerView
-        ref={pagerRef}
-        style={{ flex: 1 }}
-        initialPage={0}
-        scrollEnabled={false}
-        onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
-      >
-        {onboardingSteps.map((step, index) => (
-          <View key={index} className="flex-1">
-            {step}
-          </View>
-        ))}
-      </PagerView>
-
-      {/* Navigation Buttons */}
-      <View className="flex-row justify-between items-center px-6 py-4">
-        {currentPage > 0 ? (
-          <Pressable
-            onPress={goToPreviousPage}
-            className="flex-row items-center px-4 py-2"
-          >
-            <Text className="text-gray-400 text-base">← Back</Text>
-          </Pressable>
-        ) : (
-          <View />
-        )}
-
-        <Pressable
-          onPress={goToNextPage}
-          disabled={!canProceed()}
-          className={`px-8 py-4 rounded-full ${
-            canProceed() ? "bg-blue-500" : "bg-gray-600"
-          }`}
+        {/* Page Content */}
+        <PagerView
+          ref={pagerRef}
+          style={{ flex: 1 }}
+          initialPage={0}
+          scrollEnabled={false}
+          onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
         >
-          <Text className="text-white text-center text-lg font-bold">
-            {currentPage === totalPages - 1 ? "Finish" : "Next"}
-          </Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+          {onboardingSteps.map((step, index) => (
+            <View key={index} style={{ flex: 1 }}>
+              {step}
+            </View>
+          ))}
+        </PagerView>
+
+        {/* Navigation Buttons */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: 32,
+            paddingVertical: 24,
+          }}
+        >
+          {currentPage > 0 ? (
+            <Pressable
+              onPress={goToPreviousPage}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 30,
+                backgroundColor: isDark ? "#374151" : "rgba(255,255,255,0.8)",
+                borderWidth: 2,
+                borderColor: isDark ? "#4B5563" : "rgba(59, 130, 246, 0.3)",
+                shadowColor: "rgba(0,0,0,0.1)",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+            >
+              <Text
+                style={{
+                  color: isDark ? "#D1D5DB" : "#374151",
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                ← Back
+              </Text>
+            </Pressable>
+          ) : (
+            <View />
+          )}
+
+          <Pressable
+            onPress={goToNextPage}
+            disabled={!canProceed()}
+            style={{
+              paddingHorizontal: 40,
+              paddingVertical: 16,
+              borderRadius: 30,
+              backgroundColor: canProceed() ? "#3B82F6" : "#9CA3AF",
+              opacity: canProceed() ? 1 : 0.5,
+              shadowColor: canProceed()
+                ? "rgba(59, 130, 246, 0.4)"
+                : "rgba(0,0,0,0.1)",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: canProceed() ? 0.4 : 0.1,
+              shadowRadius: 16,
+              elevation: canProceed() ? 12 : 4,
+            }}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                textAlign: "center",
+                fontSize: 18,
+                fontWeight: "700",
+              }}
+            >
+              {currentPage === totalPages - 1 ? "Finish" : "Next"}
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }

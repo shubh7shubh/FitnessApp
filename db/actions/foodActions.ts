@@ -80,21 +80,35 @@ const DUMMY_FOODS = [
  * This is a simple way to "seed" the database for new users.
  */
 export const seedFoodDatabase = async () => {
-  await database.write(async () => {
-    const existingFood = await foodsCollection.query(Q.take(1)).fetch();
-    if (existingFood.length > 0) {
-      console.log("✅ Food database already seeded.");
-      return;
-    }
+  try {
+    console.log("🌱 Starting food database seeding...");
 
-    console.log("🌱 Seeding food database...");
-    const creations = DUMMY_FOODS.map((food) =>
-      foodsCollection.prepareCreate((newFood) => {
-        Object.assign(newFood, food);
-      })
-    );
+    await database.write(async () => {
+      console.log("📊 Checking existing food items...");
+      const existingFood = await foodsCollection.query(Q.take(1)).fetch();
 
-    await database.batch(...creations);
-    console.log(`✅ Seeded ${creations.length} food items.`);
-  });
+      if (existingFood.length > 0) {
+        console.log(
+          `✅ Food database already seeded with ${existingFood.length}+ items.`
+        );
+        return;
+      }
+
+      console.log("🌱 Seeding food database with dummy data...");
+      const creations = DUMMY_FOODS.map((food) =>
+        foodsCollection.prepareCreate((newFood) => {
+          Object.assign(newFood, food);
+        })
+      );
+
+      await database.batch(...creations);
+      console.log(`✅ Successfully seeded ${creations.length} food items.`);
+    });
+
+    console.log("🎉 Food database seeding completed successfully!");
+  } catch (error) {
+    console.error("❌ Error seeding food database:", error);
+    // Don't throw the error, just log it to prevent app crashes
+    // The app can still function without seeded food data
+  }
 };

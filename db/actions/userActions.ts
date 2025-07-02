@@ -6,14 +6,49 @@ import { User } from "@/db/models/User";
 // Get the users collection from the database
 const users = database.collections.get<User>("users");
 
+// Helper function to retry operations
+const retryOperation = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> => {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`Attempt ${attempt} failed:`, lastError.message);
+
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, delay * attempt));
+      }
+    }
+  }
+
+  throw lastError!;
+};
+
 // Get the active user (we'll only have one user for now)
 export async function getActiveUser(): Promise<User | null> {
   try {
-    // Get the first user in the database
-    const user = await users.query().fetch();
-    return user[0] || null;
+    console.log("🔍 Attempting to get active user...");
+
+    const user = await retryOperation(async () => {
+      // Get the first user in the database
+      const usersList = await users.query().fetch();
+      console.log(`📊 Found ${usersList.length} users in database`);
+      return usersList[0] || null;
+    });
+
+    console.log(
+      "✅ Successfully retrieved user:",
+      user ? `ID: ${user.id}` : "No user found"
+    );
+    return user;
   } catch (error) {
-    console.error("Error getting active user:", error);
+    console.error("❌ Error getting active user:", error);
     return null;
   }
 }

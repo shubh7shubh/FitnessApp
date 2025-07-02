@@ -1,5 +1,12 @@
 import React, { useState, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Dimensions,
+  Image,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,15 +21,23 @@ import { useTheme } from "@/modules/home/hooks/useTheme";
 const { width } = Dimensions.get("window");
 
 interface GenderAgeScreenProps {
-  onDataSelect?: (data: { gender: string; age: number }) => void;
+  onDataSelect?: (data: {
+    gender: string;
+    age: number;
+  }) => void;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedPressable =
+  Animated.createAnimatedComponent(Pressable);
 
-export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
+export const GenderAgeScreen = ({
+  onDataSelect,
+}: GenderAgeScreenProps) => {
   const { isDark } = useTheme();
-  const [selectedGender, setSelectedGender] = useState<string>("");
-  const [selectedAge, setSelectedAge] = useState<number>(25);
+  const [selectedGender, setSelectedGender] =
+    useState<string>("");
+  const [selectedAge, setSelectedAge] =
+    useState<number>(25);
 
   // Animation values
   const maleScale = useSharedValue(1);
@@ -36,34 +51,54 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
   // Theme configuration
   const theme = {
     background: isDark
-      ? (["#0A0A0A", "#1A1A1A"] as const)
-      : (["#F0F4FF", "#E6F2FF"] as const),
-    cardBackground: isDark ? "#1F2937" : "#FFFFFF",
+      ? (["#0F172A", "#1E293B"] as const)
+      : (["#FDF2F8", "#FCE7F3"] as const), // Light pink gradient for light mode
+    cardBackground: isDark ? "#1E293B" : "#FFFFFF",
+    maleCardBackground: "#DBEAFE", // Light blue for male
+    femaleCardBackground: "#FCE7F3", // Light pink for female
     selectedCardBackground: isDark ? "#10B981" : "#3B82F6",
     textPrimary: isDark ? "#FFFFFF" : "#1F2937",
-    textSecondary: isDark ? "#9CA3AF" : "#6B7280",
+    textSecondary: isDark ? "#94A3B8" : "#6B7280",
     textAccent: isDark ? "#10B981" : "#3B82F6",
-    border: isDark ? "#374151" : "#E5E7EB",
+    border: isDark ? "#334155" : "#E5E7EB",
     selectedBorder: isDark ? "#10B981" : "#3B82F6",
-    shadow: isDark ? "rgba(16, 185, 129, 0.3)" : "rgba(59, 130, 246, 0.3)",
+    shadow: isDark
+      ? "rgba(16, 185, 129, 0.4)"
+      : "rgba(59, 130, 246, 0.4)",
   };
 
   const handleGenderSelect = (gender: string) => {
     setSelectedGender(gender);
 
-    // Animate selection
+    // Immediate response with minimal animation
     if (gender === "male") {
-      maleScale.value = withSpring(1.1, { damping: 12 });
-      femaleScale.value = withSpring(1, { damping: 12 });
+      maleScale.value = withSpring(1.02, {
+        damping: 15,
+        stiffness: 300,
+        mass: 0.5,
+      });
+      femaleScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 300,
+        mass: 0.5,
+      });
     } else {
-      femaleScale.value = withSpring(1.1, { damping: 12 });
-      maleScale.value = withSpring(1, { damping: 12 });
+      femaleScale.value = withSpring(1.02, {
+        damping: 25,
+        stiffness: 500,
+        mass: 0.3,
+      });
+      maleScale.value = withSpring(1, {
+        damping: 25,
+        stiffness: 500,
+        mass: 0.3,
+      });
     }
 
-    // Trigger age animation
-    ageAnimation.value = withTiming(1, { duration: 600 });
+    // Immediate age section reveal
+    ageAnimation.value = withTiming(1, { duration: 150 });
 
-    // Call callback
+    // Call callback immediately
     onDataSelect?.({ gender, age: selectedAge });
   };
 
@@ -87,7 +122,7 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
         translateY: interpolate(
           ageAnimation.value,
           [0, 1],
-          [50, 0],
+          [30, 0],
           Extrapolate.CLAMP
         ),
       },
@@ -96,54 +131,88 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
 
   const GenderCard = ({
     gender,
-    emoji,
+    imageSource,
     label,
     isSelected,
     onPress,
+    animatedStyle,
   }: {
     gender: string;
-    emoji: string;
+    imageSource: any;
     label: string;
     isSelected: boolean;
     onPress: () => void;
-  }) => (
-    <AnimatedPressable
-      style={[
-        gender === "male" ? maleAnimatedStyle : femaleAnimatedStyle,
-        {
-          width: width * 0.35,
-          height: width * 0.35,
-          borderRadius: width * 0.175,
-          backgroundColor: isSelected
-            ? theme.selectedCardBackground
-            : theme.cardBackground,
-          borderWidth: 3,
-          borderColor: isSelected ? theme.selectedBorder : theme.border,
-          justifyContent: "center",
-          alignItems: "center",
-          marginHorizontal: 15,
-          shadowColor: isSelected ? theme.shadow : "transparent",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
-        },
-      ]}
-      onPress={onPress}
-    >
-      <Text style={{ fontSize: width * 0.12 }}>{emoji}</Text>
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: "600",
-          color: isSelected ? "#FFFFFF" : theme.textPrimary,
-          marginTop: 8,
-        }}
-      >
-        {label}
-      </Text>
-    </AnimatedPressable>
-  );
+    animatedStyle?: any;
+  }) => {
+    const cardSize = width * 0.35;
+    const cardBackground =
+      gender === "male"
+        ? theme.maleCardBackground
+        : theme.femaleCardBackground;
+
+    return (
+      <Pressable onPressIn={() => onPress()}>
+        <View
+          style={[
+            animatedStyle,
+            {
+              alignItems: "center",
+              marginHorizontal: 20,
+            },
+          ]}
+        >
+          {/* Perfect Circle Avatar */}
+          <View
+            style={{
+              width: cardSize,
+              height: cardSize,
+              borderRadius: cardSize / 2,
+              backgroundColor: isSelected
+                ? theme.selectedCardBackground
+                : cardBackground,
+              borderWidth: 4,
+              borderColor: isSelected
+                ? theme.selectedBorder
+                : "rgba(255,255,255,0.3)",
+              overflow: "hidden",
+              shadowColor: isSelected
+                ? theme.shadow
+                : "rgba(0,0,0,0.15)",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isSelected ? 0.4 : 0.2,
+              shadowRadius: 20,
+              elevation: isSelected ? 15 : 8,
+              marginBottom: 12,
+            }}
+          >
+            <Image
+              source={imageSource}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              resizeMode="cover"
+            />
+          </View>
+
+          {/* Label */}
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: isSelected
+                ? theme.selectedCardBackground
+                : theme.textPrimary,
+              letterSpacing: 0.5,
+              textAlign: "center",
+            }}
+          >
+            {label}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   const AgeCard = ({
     age,
@@ -161,24 +230,28 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
         backgroundColor: isSelected
           ? theme.selectedCardBackground
           : theme.cardBackground,
-        borderRadius: 16,
+        borderRadius: 20,
         justifyContent: "center",
         alignItems: "center",
-        marginHorizontal: 8,
+        marginHorizontal: 4,
         borderWidth: 2,
-        borderColor: isSelected ? theme.selectedBorder : theme.border,
-        shadowColor: isSelected ? theme.shadow : "transparent",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
+        borderColor: isSelected
+          ? theme.selectedBorder
+          : theme.border,
+        shadowColor: isSelected
+          ? theme.shadow
+          : "rgba(0,0,0,0.1)",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: isSelected ? 0.3 : 0.1,
+        shadowRadius: 8,
+        elevation: isSelected ? 8 : 2,
       }}
-      onPress={onPress}
+      onPressIn={() => onPress()}
     >
       <Text
         style={{
-          fontSize: 24,
-          fontWeight: "700",
+          fontSize: 26,
+          fontWeight: "800",
           color: isSelected ? "#FFFFFF" : theme.textPrimary,
         }}
       >
@@ -187,7 +260,10 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
       <Text
         style={{
           fontSize: 12,
-          color: isSelected ? "#FFFFFF" : theme.textSecondary,
+          fontWeight: "600",
+          color: isSelected
+            ? "rgba(255,255,255,0.8)"
+            : theme.textSecondary,
           marginTop: 4,
         }}
       >
@@ -197,29 +273,43 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
   );
 
   return (
-    <LinearGradient colors={theme.background} style={{ flex: 1 }}>
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 60 }}>
+    <LinearGradient
+      colors={theme.background}
+      style={{ flex: 1 }}
+    >
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 24,
+          paddingTop: 40,
+        }}
+      >
         {/* Header */}
-        <View style={{ alignItems: "center", marginBottom: 50 }}>
+        <View
+          style={{ alignItems: "center", marginBottom: 50 }}
+        >
           <Text
             style={{
-              fontSize: 18,
+              fontSize: 16,
               color: theme.textSecondary,
               textAlign: "center",
-              marginBottom: 8,
+              marginBottom: 12,
+              fontWeight: "500",
+              letterSpacing: 0.5,
             }}
           >
-            We celebrate every individual
+            Tell us about yourself
           </Text>
           <Text
             style={{
-              fontSize: 28,
-              fontWeight: "700",
+              fontSize: 32,
+              fontWeight: "800",
               color: theme.textPrimary,
               textAlign: "center",
+              letterSpacing: -0.5,
             }}
           >
-            How do you identify?
+            Who are you?
           </Text>
         </View>
 
@@ -229,37 +319,41 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
             flexDirection: "row",
             justifyContent: "center",
             marginBottom: 60,
+            paddingHorizontal: 20,
           }}
         >
           <GenderCard
             gender="male"
-            emoji="👨"
+            imageSource={require("@/assets/images/male.png")}
             label="Male"
             isSelected={selectedGender === "male"}
             onPress={() => handleGenderSelect("male")}
+            animatedStyle={maleAnimatedStyle}
           />
           <GenderCard
             gender="female"
-            emoji="👩"
+            imageSource={require("@/assets/images/female.png")}
             label="Female"
             isSelected={selectedGender === "female"}
             onPress={() => handleGenderSelect("female")}
+            animatedStyle={femaleAnimatedStyle}
           />
         </View>
 
         {/* Age Selection */}
         {selectedGender && (
-          <Animated.View style={[ageContainerStyle, { flex: 1 }]}>
+          <View style={[ageContainerStyle, { flex: 1 }]}>
             <Text
               style={{
-                fontSize: 22,
-                fontWeight: "600",
+                fontSize: 24,
+                fontWeight: "700",
                 color: theme.textPrimary,
                 textAlign: "center",
                 marginBottom: 30,
+                letterSpacing: -0.3,
               }}
             >
-              Select Your Age
+              How old are you?
             </Text>
 
             <ScrollView
@@ -267,11 +361,13 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
-                paddingHorizontal: width * 0.4,
+                paddingLeft: 20,
+                paddingRight: 20,
                 alignItems: "center",
               }}
               snapToInterval={96}
               decelerationRate="fast"
+              style={{ flexGrow: 0, marginHorizontal: -24 }}
             >
               {ages.map((age) => (
                 <AgeCard
@@ -282,41 +378,10 @@ export const GenderAgeScreen = ({ onDataSelect }: GenderAgeScreenProps) => {
                 />
               ))}
             </ScrollView>
-          </Animated.View>
-        )}
 
-        {/* Progress Indicator */}
-        <View
-          style={{
-            position: "absolute",
-            bottom: 40,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              backgroundColor: theme.selectedCardBackground,
-              justifyContent: "center",
-              alignItems: "center",
-              opacity: selectedGender && selectedAge ? 1 : 0.3,
-            }}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 24,
-                fontWeight: "600",
-              }}
-            >
-              →
-            </Text>
+            <View style={{ height: 40 }} />
           </View>
-        </View>
+        )}
       </View>
     </LinearGradient>
   );
