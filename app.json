@@ -5,6 +5,7 @@
     },
     "name": "fitness-app",
     "slug": "fitness-app",
+    "owner": "nischay23",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,10 +25,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "usesCleartextTraffic": true,
-      "permissions": [
-        "android.permission.INTERNET"
-      ],
+
+      "permissions": ["android.permission.INTERNET"],
       "package": "com.nischay23.fitnessapp"
     },
     "web": {

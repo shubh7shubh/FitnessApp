@@ -11,7 +11,7 @@ import {
   FlatList,
   TextInput,
 } from "react-native";
-import { Loader } from "./Loader";
+import Loader from "./Loader";
 import Comment from "./Comment";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
