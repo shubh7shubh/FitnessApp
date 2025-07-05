@@ -17,16 +17,23 @@ import {
 import { useTheme } from "@/modules/home/hooks/useTheme";
 
 const { width } = Dimensions.get("window");
-const ITEM_WIDTH = 12; // Width of each tick container
+const ITEM_WIDTH = 12;
 const RULER_PADDING = (width - ITEM_WIDTH) / 2;
 
 interface WeightScreenProps {
-  onWeightSelect?: (data: { weight: number; unit: "kg" | "lbs" }) => void;
+  onWeightSelect?: (data: {
+    weight: number;
+    unit: "kg" | "lbs";
+  }) => void;
 }
 
-export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
+export const WeightScreen = ({
+  onWeightSelect,
+}: WeightScreenProps) => {
   const { isDark } = useTheme();
-  const [selectedUnit, setSelectedUnit] = useState<"kg" | "lbs">("kg");
+  const [selectedUnit, setSelectedUnit] = useState<
+    "kg" | "lbs"
+  >("kg");
   const [selectedWeight, setSelectedWeight] = useState(78);
   const rulerRef = useRef<FlatList>(null);
 
@@ -67,11 +74,16 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const scrollOffset = event.nativeEvent.contentOffset.x;
+      const scrollOffset =
+        event.nativeEvent.contentOffset.x;
       const newWeight =
-        Math.round(scrollOffset / ITEM_WIDTH) + weightConfig.min;
+        Math.round(scrollOffset / ITEM_WIDTH) +
+        weightConfig.min;
 
-      if (newWeight >= weightConfig.min && newWeight <= weightConfig.max) {
+      if (
+        newWeight >= weightConfig.min &&
+        newWeight <= weightConfig.max
+      ) {
         setSelectedWeight(newWeight);
         onWeightSelect?.({
           weight: newWeight,
@@ -99,7 +111,9 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
     const isMain = item % 10 === 0;
     const isHalf = item % 5 === 0 && !isMain;
     return (
-      <View style={{ width: ITEM_WIDTH, alignItems: "center" }}>
+      <View
+        style={{ width: ITEM_WIDTH, alignItems: "center" }}
+      >
         <View
           style={{
             width: isMain ? 2 : 1,
@@ -136,14 +150,20 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 20,
-        backgroundColor: isSelected ? "#68D391" : "transparent",
+        backgroundColor: isSelected
+          ? "#68D391"
+          : "transparent",
         minWidth: 80,
         alignItems: "center",
       }}
     >
       <Text
         style={{
-          color: isSelected ? "#FFFFFF" : isDark ? "#A0AEC0" : "#718096",
+          color: isSelected
+            ? "#FFFFFF"
+            : isDark
+              ? "#A0AEC0"
+              : "#718096",
           fontWeight: "600",
           fontSize: 16,
         }}
@@ -154,7 +174,9 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "transparent" }}>
+    <View
+      style={{ flex: 1, backgroundColor: "transparent" }}
+    >
       <View
         style={{
           flex: 1,
@@ -204,8 +226,14 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
             borderColor: isDark ? "#4A5568" : "transparent",
           }}
         >
-          <UnitToggle unit="kg" isSelected={selectedUnit === "kg"} />
-          <UnitToggle unit="lbs" isSelected={selectedUnit === "lbs"} />
+          <UnitToggle
+            unit="kg"
+            isSelected={selectedUnit === "kg"}
+          />
+          <UnitToggle
+            unit="lbs"
+            isSelected={selectedUnit === "lbs"}
+          />
         </View>
 
         {/* Weight Display Container */}
@@ -244,7 +272,9 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
               borderBottomWidth: 12,
               borderLeftColor: "transparent",
               borderRightColor: "transparent",
-              borderBottomColor: isDark ? "#FEFDE0" : "#2D3748",
+              borderBottomColor: isDark
+                ? "#FEFDE0"
+                : "#2D3748",
               marginBottom: 20,
             }}
           />
@@ -267,8 +297,12 @@ export const WeightScreen = ({ onWeightSelect }: WeightScreenProps) => {
                 offset: ITEM_WIDTH * index,
                 index,
               })}
-              ListHeaderComponent={<View style={{ width: RULER_PADDING }} />}
-              ListFooterComponent={<View style={{ width: RULER_PADDING }} />}
+              ListHeaderComponent={
+                <View style={{ width: RULER_PADDING }} />
+              }
+              ListFooterComponent={
+                <View style={{ width: RULER_PADDING }} />
+              }
             />
           </View>
 
