@@ -1,10 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { View, SafeAreaView, Pressable, Text } from "react-native";
 import PagerView from "react-native-pager-view";
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { GenderAgeScreen } from "@/modules/onboarding/components/screens/GenderAgeScreen";
+import { WeightScreen } from "@/modules/onboarding/components/screens/WeightScreen";
 import { GoalScreen } from "@/modules/onboarding/components/screens/GoalScreen";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/modules/home/hooks/useTheme";
@@ -22,6 +23,13 @@ export default function OnboardingFlow() {
     gender: "",
     age: 25,
   });
+  const [weightData, setWeightData] = useState<{
+    weight: number;
+    unit: "kg" | "lbs";
+  }>({
+    weight: 78,
+    unit: "kg",
+  });
   const { setOnboardingComplete, setSelectedGoal: setStoreGoal } =
     useAppStore();
 
@@ -30,20 +38,35 @@ export default function OnboardingFlow() {
     ? (["#0F172A", "#1E293B"] as const)
     : (["#FFFFFF", "#FDF2F8"] as const); // White to light pink
 
-  const handleGenderAgeSelect = (data: { gender: string; age: number }) => {
-    setGenderAgeData(data);
-    console.log("Gender and Age selected:", data);
-  };
+  const handleGenderAgeSelect = useCallback(
+    (data: { gender: string; age: number }) => {
+      setGenderAgeData(data);
+      console.log("Gender and Age selected:", data);
+    },
+    []
+  );
 
-  const handleGoalSelect = (goal: string) => {
+  const handleWeightSelect = useCallback(
+    (data: { weight: number; unit: "kg" | "lbs" }) => {
+      setWeightData(data);
+      console.log("Weight selected:", data);
+    },
+    []
+  );
+
+  const handleGoalSelect = useCallback((goal: string) => {
     setSelectedGoal(goal);
     console.log("Goal selected:", goal);
-  };
+  }, []);
 
-  const onboardingSteps = [
-    <GenderAgeScreen key="gender-age" onDataSelect={handleGenderAgeSelect} />,
-    <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
-  ];
+  const onboardingSteps = useMemo(
+    () => [
+      <GenderAgeScreen key="gender-age" onDataSelect={handleGenderAgeSelect} />,
+      <WeightScreen key="weight" onWeightSelect={handleWeightSelect} />,
+      <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
+    ],
+    [handleGenderAgeSelect, handleWeightSelect, handleGoalSelect]
+  );
 
   const totalPages = onboardingSteps.length;
 
@@ -54,6 +77,7 @@ export default function OnboardingFlow() {
       // This is the last page, finish onboarding
       console.log("Onboarding Complete!", {
         genderAge: genderAgeData,
+        weight: weightData,
         goal: selectedGoal,
       });
 
@@ -77,6 +101,9 @@ export default function OnboardingFlow() {
       return genderAgeData.gender !== "";
     }
     if (currentPage === 1) {
+      return weightData.weight > 0;
+    }
+    if (currentPage === 2) {
       return selectedGoal !== "";
     }
     return false;
@@ -152,10 +179,10 @@ export default function OnboardingFlow() {
               paddingHorizontal: 40,
               paddingVertical: 16,
               borderRadius: 30,
-              backgroundColor: canProceed() ? "#3B82F6" : "#9CA3AF",
+              backgroundColor: canProceed() ? "#68D391" : "#9CA3AF",
               opacity: canProceed() ? 1 : 0.5,
               shadowColor: canProceed()
-                ? "rgba(59, 130, 246, 0.4)"
+                ? "rgba(104, 211, 145, 0.4)"
                 : "rgba(0,0,0,0.1)",
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: canProceed() ? 0.4 : 0.1,

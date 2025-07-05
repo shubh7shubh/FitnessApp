@@ -1,10 +1,22 @@
 import "../global.css";
 import { useCallback, useEffect, useState } from "react";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack, useRouter } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import {
+  SplashScreen,
+  Stack,
+  useRouter,
+} from "expo-router";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Platform, View, ActivityIndicator, Text } from "react-native";
+import {
+  Platform,
+  View,
+  ActivityIndicator,
+  Text,
+} from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 
 import { useAppStore } from "@/stores/appStore";
@@ -12,6 +24,7 @@ import { getActiveUser } from "@/db/actions/userActions";
 import { seedFoodDatabase } from "@/db/actions/foodActions";
 import DatabaseProvider from "@/providers/DatabaseProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Keep the splash screen visible while we figure things out
 SplashScreen.preventAutoHideAsync();
@@ -28,7 +41,10 @@ export default function RootLayout() {
   } = useAppStore();
 
   // Local state to track initialization
-  const [appInitialized, setAppInitialized] = useState(false);
+  const [appInitialized, setAppInitialized] =
+    useState(false);
+  const [isNavigatorReady, setIsNavigatorReady] =
+    useState(false);
 
   // Font loading
   const [fontsLoaded, fontError] = useFonts({
@@ -37,7 +53,7 @@ export default function RootLayout() {
 
   const router = useRouter();
 
-  // --- Simplified App Initialization ---
+  // --- App Initialization (separate from navigation) ---
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -48,7 +64,10 @@ export default function RootLayout() {
         try {
           await seedFoodDatabase();
         } catch (seedError) {
-          console.warn("Food database seeding failed:", seedError);
+          console.warn(
+            "Food database seeding failed:",
+            seedError
+          );
           // Don't block app initialization for seeding issues
         }
 
@@ -61,13 +80,18 @@ export default function RootLayout() {
 
         // 4. Set onboarding status
         if (user && !onboardingComplete) {
-          console.log("✅ User exists, marking onboarding as complete");
+          console.log(
+            "✅ User exists, marking onboarding as complete"
+          );
           setOnboardingComplete(true);
         }
 
         console.log("✅ App initialization complete");
       } catch (error) {
-        console.error("❌ App initialization failed:", error);
+        console.error(
+          "❌ App initialization failed:",
+          error
+        );
         // Reset to a known state
         setCurrentUser(null);
         setOnboardingComplete(false);
@@ -83,10 +107,15 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError, appInitialized]);
 
-  // --- Navigation Effect (Separate from initialization) ---
+  // --- Navigation Effect (Wait for navigator to be ready) ---
   useEffect(() => {
-    // Wait for both app initialization and font loading
-    if (!appInitialized || (!fontsLoaded && !fontError) || isLoading) {
+    // Wait for everything to be ready before navigating
+    if (
+      !appInitialized ||
+      (!fontsLoaded && !fontError) ||
+      isLoading ||
+      !isNavigatorReady
+    ) {
       return;
     }
 
@@ -95,9 +124,10 @@ export default function RootLayout() {
       onboardingComplete,
       fontsLoaded: !!fontsLoaded,
       appInitialized,
+      isNavigatorReady,
     });
 
-    // Simplified navigation logic with timeout to prevent hanging
+    // Add a small delay to ensure the navigator is fully mounted
     const navigateTimeout = setTimeout(() => {
       try {
         if (isAuthenticated && onboardingComplete) {
@@ -115,7 +145,7 @@ export default function RootLayout() {
         // Fallback navigation
         router.replace("/(auth)/CreateProfileScreen");
       }
-    }, 100); // Small delay to ensure state is stable
+    }, 300); // Increased delay to ensure navigator is ready
 
     return () => clearTimeout(navigateTimeout);
   }, [
@@ -125,11 +155,16 @@ export default function RootLayout() {
     fontsLoaded,
     fontError,
     isLoading,
+    isNavigatorReady,
   ]);
 
   // --- Hide Splash Screen Logic ---
   const onLayoutRootView = useCallback(async () => {
-    if ((fontsLoaded || fontError) && appInitialized && !isLoading) {
+    if (
+      (fontsLoaded || fontError) &&
+      appInitialized &&
+      !isLoading
+    ) {
       try {
         await SplashScreen.hideAsync();
         console.log("✅ Splash screen hidden");
@@ -147,54 +182,74 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Mark navigator as ready after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNavigatorReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Show loading state
   const showLoading =
-    !appInitialized || (!fontsLoaded && !fontError) || isLoading;
+    !appInitialized ||
+    (!fontsLoaded && !fontError) ||
+    isLoading ||
+    !isNavigatorReady;
 
   return (
     <ErrorBoundary>
       <DatabaseProvider>
         <SafeAreaProvider>
-          <SafeAreaView className="flex-1 bg-black" onLayout={onLayoutRootView}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)/CreateProfileScreen" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="(modals)"
-                options={{ presentation: "modal" }}
-              />
-              <Stack.Screen name="nutrition/index" />
-              <Stack.Screen name="nutrition/search" />
-              <Stack.Screen name="products/[id]" />
-              <Stack.Screen name="user/[id]" />
-            </Stack>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaView
+              className="flex-1 bg-black"
+              onLayout={onLayoutRootView}
+            >
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)/CreateProfileScreen" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="(modals)"
+                  options={{ presentation: "modal" }}
+                />
+                <Stack.Screen name="nutrition/index" />
+                <Stack.Screen name="nutrition/search" />
+                <Stack.Screen name="products/[id]" />
+                <Stack.Screen name="user/[id]" />
+              </Stack>
 
-            {/* Loading overlay with better error handling */}
-            {showLoading && (
-              <View className="absolute inset-0 bg-black flex-1 justify-center items-center">
-                <ActivityIndicator size="large" color="#10B981" />
-                <Text className="text-white mt-4 text-center px-4">
-                  {fontError
-                    ? "Font loading failed, continuing..."
-                    : !fontsLoaded
-                      ? "Loading fonts..."
-                      : !appInitialized
-                        ? "Initializing app..."
-                        : "Starting FitNext..."}
-                </Text>
-                {fontError && (
-                  <Text className="text-red-400 mt-2 text-sm">
-                    Font Error: {fontError.message}
+              {/* Loading overlay with better error handling */}
+              {showLoading && (
+                <View className="absolute inset-0 bg-black flex-1 justify-center items-center">
+                  <ActivityIndicator
+                    size="large"
+                    color="#10B981"
+                  />
+                  <Text className="text-white mt-4 text-center px-4">
+                    {fontError
+                      ? "Font loading failed, continuing..."
+                      : !fontsLoaded
+                        ? "Loading fonts..."
+                        : !appInitialized
+                          ? "Initializing app..."
+                          : !isNavigatorReady
+                            ? "Setting up navigation..."
+                            : "Starting FitNext..."}
                   </Text>
-                )}
-              </View>
-            )}
+                  {fontError && (
+                    <Text className="text-red-400 mt-2 text-sm">
+                      Font Error: {fontError.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </SafeAreaView>
 
-            {/* Debug panel for development */}
-          </SafeAreaView>
-          <StatusBar style="light" />
+            <StatusBar style="light" />
+          </GestureHandlerRootView>
         </SafeAreaProvider>
       </DatabaseProvider>
     </ErrorBoundary>
