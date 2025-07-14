@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { GenderAgeScreen } from "@/modules/onboarding/components/screens/GenderAgeScreen";
 import { WeightScreen } from "@/modules/onboarding/components/screens/WeightScreen";
+import { TargetWeightScreen } from "@/modules/onboarding/components/screens/TargetWeightScreen";
 import { GoalScreen } from "@/modules/onboarding/components/screens/GoalScreen";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/modules/home/hooks/useTheme";
@@ -28,6 +29,13 @@ export default function OnboardingFlow() {
     unit: "kg" | "lbs";
   }>({
     weight: 78,
+    unit: "kg",
+  });
+  const [targetWeightData, setTargetWeightData] = useState<{
+    targetWeight: number;
+    unit: "kg" | "lbs";
+  }>({
+    targetWeight: 72,
     unit: "kg",
   });
   const { setOnboardingComplete, setSelectedGoal: setStoreGoal } =
@@ -54,6 +62,14 @@ export default function OnboardingFlow() {
     []
   );
 
+  const handleTargetWeightSelect = useCallback(
+    (data: { targetWeight: number; unit: "kg" | "lbs" }) => {
+      setTargetWeightData(data);
+      console.log("Target weight selected:", data);
+    },
+    []
+  );
+
   const handleGoalSelect = useCallback((goal: string) => {
     setSelectedGoal(goal);
     console.log("Goal selected:", goal);
@@ -63,9 +79,21 @@ export default function OnboardingFlow() {
     () => [
       <GenderAgeScreen key="gender-age" onDataSelect={handleGenderAgeSelect} />,
       <WeightScreen key="weight" onWeightSelect={handleWeightSelect} />,
+      <TargetWeightScreen
+        key="target-weight"
+        currentWeight={weightData.weight}
+        currentUnit={weightData.unit}
+        onTargetWeightSelect={handleTargetWeightSelect}
+      />,
       <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
     ],
-    [handleGenderAgeSelect, handleWeightSelect, handleGoalSelect]
+    [
+      handleGenderAgeSelect,
+      handleWeightSelect,
+      handleTargetWeightSelect,
+      handleGoalSelect,
+      weightData,
+    ]
   );
 
   const totalPages = onboardingSteps.length;
@@ -78,6 +106,7 @@ export default function OnboardingFlow() {
       console.log("Onboarding Complete!", {
         genderAge: genderAgeData,
         weight: weightData,
+        targetWeight: targetWeightData,
         goal: selectedGoal,
       });
 
@@ -104,6 +133,9 @@ export default function OnboardingFlow() {
       return weightData.weight > 0;
     }
     if (currentPage === 2) {
+      return targetWeightData.targetWeight > 0;
+    }
+    if (currentPage === 3) {
       return selectedGoal !== "";
     }
     return false;
