@@ -83,6 +83,7 @@ export default function OnboardingFlow() {
         key="target-weight"
         currentWeight={weightData.weight}
         currentUnit={weightData.unit}
+        targetWeight={targetWeightData.targetWeight}
         onTargetWeightSelect={handleTargetWeightSelect}
       />,
       <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
@@ -93,6 +94,7 @@ export default function OnboardingFlow() {
       handleTargetWeightSelect,
       handleGoalSelect,
       weightData,
+      targetWeightData,
     ]
   );
 

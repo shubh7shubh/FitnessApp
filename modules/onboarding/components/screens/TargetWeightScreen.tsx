@@ -1,7 +1,19 @@
 // modules/onboarding/components/screens/TargetWeightScreen.tsx
 
-import React, { useState, useRef, useMemo, useCallback } from "react";
-import { View, Text, FlatList, Dimensions, useColorScheme } from "react-native";
+import React, {
+  useRef,
+  useMemo,
+  useCallback,
+  useState,
+  useEffect,
+} from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Dimensions,
+  useColorScheme,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Path,
@@ -10,25 +22,29 @@ import Svg, {
   Stop,
   G,
   Text as SvgText,
-  Circle,
-  Polyline,
+  Polygon,
 } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
   withTiming,
+  Easing,
 } from "react-native-reanimated";
 
 // --- Configuration ---
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_WIDTH = 14;
 const RULER_HEIGHT = 80;
+const SCROLL_DEBOUNCE_DELAY = 100; // milliseconds
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedPolygon =
+  Animated.createAnimatedComponent(Polygon);
 
 // --- Component Props ---
 interface TargetWeightScreenProps {
   currentWeight: number;
   currentUnit: "kg" | "lbs";
+  targetWeight: number;
   onTargetWeightSelect?: (data: {
     targetWeight: number;
     unit: "kg" | "lbs";
@@ -51,50 +67,45 @@ const TargetWeightGraph = React.memo(
     const isLosingWeight = targetWeight < currentWeight;
     const progress = useSharedValue(0);
 
-    // useMemo recalculates points only when the goal direction changes
-    const { P0, P1, P2, arrowRotation, currentLabelPos, targetLabelPos } =
-      useMemo(() => {
-        if (isLosingWeight) {
-          // Downward curve for weight loss
-          return {
-            P0: { x: 40, y: 40 }, // Start high
-            P1: { x: 120, y: 120 }, // Control point for downward arc
-            P2: { x: 260, y: 100 }, // End low
-            arrowRotation: -30,
-            currentLabelPos: { x: 20, y: 25 },
-            targetLabelPos: { x: 260, y: 115 },
-          };
-        }
-        // Upward curve for weight gain
+    const {
+      P0,
+      P1,
+      P2,
+      arrowPoints,
+      currentLabelPos,
+      targetLabelPos,
+    } = useMemo(() => {
+      if (isLosingWeight) {
+        // Downward curve for weight loss
         return {
-          P0: { x: 40, y: 100 }, // Start low
-          P1: { x: 120, y: 20 }, // Control point for upward arc
-          P2: { x: 260, y: 40 }, // End high
-          arrowRotation: 30,
-          currentLabelPos: { x: 20, y: 115 },
-          targetLabelPos: { x: 260, y: 25 },
+          P0: { x: 60, y: 35 },
+          P1: { x: 160, y: 90 },
+          P2: { x: 240, y: 75 },
+          arrowPoints: "0,0 -12,-6 -8,-2 -8,2 -12,6",
+          currentLabelPos: { x: 12, y: 30 },
+          targetLabelPos: { x: 260, y: 80 },
         };
-      }, [isLosingWeight]);
+      }
+      // Upward curve for weight gain
+      return {
+        P0: { x: 60, y: 85 },
+        P1: { x: 160, y: 30 },
+        P2: { x: 240, y: 35 },
+        arrowPoints: "0,0 -12,-6 -8,-2 -8,2 -12,6",
+        currentLabelPos: { x: 10, y: 100 },
+        targetLabelPos: { x: 250, y: 20 },
+      };
+    }, [isLosingWeight]);
 
     React.useEffect(() => {
-      progress.value = 0; // Reset on change
-      progress.value = withTiming(1, { duration: 600 });
-    }, [targetWeight, progress]);
+      progress.value = 0;
+      progress.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      });
+    }, [targetWeight]);
 
-    const animatedFillProps = useAnimatedProps(() => {
-      const t = progress.value;
-      const midX = P0.x + (P1.x - P0.x) * t;
-      const midY = P0.y + (P1.y - P0.y) * t;
-      const endX = P1.x + (P2.x - P1.x) * t;
-      const endY = P1.y + (P2.y - P1.y) * t;
-      const baselineY = 115;
-
-      return {
-        d: `M ${P0.x} ${P0.y} Q ${midX} ${midY} ${endX} ${endY} L ${endX} ${baselineY} L ${P0.x} ${baselineY} Z`,
-      };
-    });
-
-    const animatedStrokeProps = useAnimatedProps(() => {
+    const animatedPathProps = useAnimatedProps(() => {
       const t = progress.value;
       const midX = P0.x + (P1.x - P0.x) * t;
       const midY = P0.y + (P1.y - P0.y) * t;
@@ -105,14 +116,31 @@ const TargetWeightGraph = React.memo(
       };
     });
 
+    const animatedFillProps = useAnimatedProps(() => {
+      const t = progress.value;
+      const midX = P0.x + (P1.x - P0.x) * t;
+      const midY = P0.y + (P1.y - P0.y) * t;
+      const endX = P1.x + (P2.x - P1.x) * t;
+      const endY = P1.y + (P2.y - P1.y) * t;
+      const pathD = `M ${P0.x} ${P0.y} Q ${midX} ${midY} ${endX} ${endY}`;
+      const baselineY = 115;
+      return {
+        d: `${pathD} L ${endX} ${baselineY} L ${P0.x} ${baselineY} Z`,
+      };
+    });
+
     const animatedArrowOpacity = useAnimatedProps(() => {
       return {
-        opacity: progress.value === 1 ? withTiming(1, { duration: 300 }) : 0,
+        opacity:
+          progress.value === 1
+            ? withTiming(1, { duration: 300 })
+            : 0,
       };
     });
 
     const gainColor = isDark ? "#FBBF24" : "#D97706";
     const lossColor = "#10B981";
+    const lossArrowColor = "#F59E0B";
 
     const lineStroke = isLosingWeight
       ? "url(#lossLineGrad)"
@@ -120,80 +148,142 @@ const TargetWeightGraph = React.memo(
     const areaFill = isLosingWeight
       ? "url(#lossAreaGrad)"
       : "url(#gainAreaGrad)";
-    const arrowFill = isLosingWeight ? "#F59E0B" : gainColor;
+    const arrowFill = isLosingWeight
+      ? lossArrowColor
+      : gainColor;
 
     const textColor = isDark ? "#E5E7EB" : "#374151";
-    const subTextColor = isDark ? "#9CA3AF" : "#6B7280";
 
     return (
-      <View style={{ height: 120, width: "100%", marginBottom: 20 }}>
-        <Svg width="100%" height="100%" viewBox="0 0 300 120">
+      <View className="h-[140px] w-full mb-8 px-5">
+        <Svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 300 140"
+        >
           <Defs>
-            {/* Gradients for Weight Loss (Green) */}
-            <SvgGradient id="lossAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor="#6EE7B7" stopOpacity={0.4} />
-              <Stop offset="100%" stopColor={lossColor} stopOpacity={0.1} />
+            <SvgGradient
+              id="lossAreaGrad"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <Stop
+                offset="0%"
+                stopColor="#6EE7B7"
+                stopOpacity={0.4}
+              />
+              <Stop
+                offset="100%"
+                stopColor={lossColor}
+                stopOpacity={0.1}
+              />
             </SvgGradient>
-            <SvgGradient id="lossLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <SvgGradient
+              id="lossLineGrad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+            >
               <Stop offset="0%" stopColor="#FCD34D" />
-              <Stop offset="100%" stopColor="#F59E0B" />
+              <Stop
+                offset="100%"
+                stopColor={lossArrowColor}
+              />
             </SvgGradient>
 
-            {/* Gradients for Weight Gain (Yellow/Orange) */}
-            <SvgGradient id="gainAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor="#FDE68A" stopOpacity={0.5} />
-              <Stop offset="100%" stopColor={gainColor} stopOpacity={0.1} />
+            <SvgGradient
+              id="gainAreaGrad"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <Stop
+                offset="0%"
+                stopColor="#FDE68A"
+                stopOpacity={0.5}
+              />
+              <Stop
+                offset="100%"
+                stopColor={gainColor}
+                stopOpacity={0.1}
+              />
             </SvgGradient>
-            <SvgGradient id="gainLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <SvgGradient
+              id="gainLineGrad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+            >
               <Stop offset="0%" stopColor="#FDE68A" />
               <Stop offset="100%" stopColor={gainColor} />
             </SvgGradient>
+
+            <SvgGradient
+              id="arrowGrad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <Stop offset="0%" stopColor={arrowFill} />
+              <Stop
+                offset="100%"
+                stopColor={arrowFill}
+                stopOpacity={0.8}
+              />
+            </SvgGradient>
           </Defs>
 
-          <AnimatedPath animatedProps={animatedFillProps} fill={areaFill} />
           <AnimatedPath
-            animatedProps={animatedStrokeProps}
+            animatedProps={animatedFillProps}
+            fill={areaFill}
+          />
+          <AnimatedPath
+            animatedProps={animatedPathProps}
             fill="none"
             stroke={lineStroke}
-            strokeWidth={3}
+            strokeWidth={4}
             strokeLinecap="round"
+            strokeLinejoin="round"
           />
 
-          {/* Arrow head */}
-          <G x={P2.x} y={P2.y} originX="0" originY="0">
-            <AnimatedPath
-              d="M 0 -8 L -5 -2 L 5 -2 Z"
-              fill={arrowFill}
+          <G transform={`translate(${P2.x}, ${P2.y})`}>
+            <AnimatedPolygon
+              points={arrowPoints}
+              fill="url(#arrowGrad)"
+              stroke={arrowFill}
+              strokeWidth={1}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               animatedProps={animatedArrowOpacity}
-              transform={`rotate(${arrowRotation})`}
             />
           </G>
 
-          {/* Labels */}
           <G x={currentLabelPos.x} y={currentLabelPos.y}>
-            <SvgText fill={textColor} fontSize="16" fontWeight="bold">
+            <SvgText
+              fill={textColor}
+              fontSize="16"
+              fontWeight="bold"
+              letterSpacing="0.5"
+            >
               {currentWeight} {unit}
             </SvgText>
-            <SvgText fill={subTextColor} fontSize="12" y="18">
-              Current
-            </SvgText>
           </G>
+
           <G x={targetLabelPos.x} y={targetLabelPos.y}>
             <SvgText
               fill={isLosingWeight ? lossColor : gainColor}
               fontSize="16"
               fontWeight="bold"
               textAnchor="middle"
+              letterSpacing="0.5"
             >
               {targetWeight} {unit}
-            </SvgText>
-            <SvgText
-              fill={subTextColor}
-              fontSize="12"
-              y="18"
-              textAnchor="middle"
-            >
-              Target
             </SvgText>
           </G>
         </Svg>
@@ -206,37 +296,70 @@ const TargetWeightGraph = React.memo(
 export const TargetWeightScreen = ({
   currentWeight,
   currentUnit,
+  targetWeight,
   onTargetWeightSelect,
 }: TargetWeightScreenProps) => {
   const isDark = useColorScheme() === "dark";
-
-  // For simplicity, we'll keep the unit consistent with the previous screen
   const unit = currentUnit;
-  const [targetWeight, setTargetWeight] = useState(
-    Math.round(currentWeight * 0.95)
-  ); // Default to a 5% loss goal
-
   const flatListRef = useRef<FlatList>(null);
+  const scrollTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
-  // Generate data for the ruler
+  // Local state for immediate UI updates
+  const [displayWeight, setDisplayWeight] =
+    useState(targetWeight);
+
   const rulerData = useMemo(() => {
     const min = unit === "kg" ? 30 : 66;
     const max = unit === "kg" ? 200 : 440;
-    return Array.from({ length: max - min + 1 }, (_, i) => i + min);
+    return Array.from(
+      { length: max - min + 1 },
+      (_, i) => i + min
+    );
   }, [unit]);
 
-  const onScroll = (event: any) => {
-    const newWeight =
-      Math.round(event.nativeEvent.contentOffset.x / ITEM_WIDTH) +
-      (unit === "kg" ? 30 : 66);
-    if (newWeight !== targetWeight) {
-      setTargetWeight(newWeight);
-      onTargetWeightSelect?.({
-        targetWeight: newWeight,
-        unit,
-      });
-    }
-  };
+  const onScroll = useCallback(
+    (event: any) => {
+      const newWeight =
+        Math.round(
+          event.nativeEvent.contentOffset.x / ITEM_WIDTH
+        ) + (unit === "kg" ? 30 : 66);
+
+      // Update display weight immediately for smooth UI
+      setDisplayWeight(newWeight);
+
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Set new timeout to update the actual target weight and graph
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (newWeight !== targetWeight) {
+          onTargetWeightSelect?.({
+            targetWeight: newWeight,
+            unit,
+          });
+        }
+      }, SCROLL_DEBOUNCE_DELAY);
+    },
+    [targetWeight, unit, onTargetWeightSelect]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update display weight when targetWeight changes externally
+  useEffect(() => {
+    setDisplayWeight(targetWeight);
+  }, [targetWeight]);
 
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
@@ -249,46 +372,25 @@ export const TargetWeightScreen = ({
 
   return (
     <LinearGradient
-      colors={isDark ? ["#111827", "#1F2937"] : ["#F3FDE8", "#EBFBEF"]}
-      style={{ flex: 1 }}
+      colors={
+        isDark
+          ? ["#111827", "#1F2937"]
+          : ["#F3FDE8", "#EBFBEF"]
+      }
+      className="flex-1"
     >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          paddingTop: 60,
-          paddingBottom: 20,
-        }}
-      >
+      <View className="flex-1 justify-center pt-[150px] pb-0">
         {/* Header */}
-        <View
-          style={{
-            alignItems: "center",
-            paddingHorizontal: 20,
-            marginBottom: 20,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 18,
-              color: isDark ? "#9CA3AF" : "#4B5563",
-            }}
-          >
+        <View className="items-center px-5 mb-10">
+          <Text className="text-lg text-gray-500 dark:text-gray-400 tracking-wide">
             Set your
           </Text>
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: "bold",
-              color: isDark ? "#F9FAFB" : "#1F2937",
-              marginTop: 4,
-            }}
-          >
+          <Text className="text-[28px] font-bold text-gray-800 dark:text-gray-50 mt-2 tracking-wide">
             Target Weight
           </Text>
         </View>
 
-        {/* The Dynamic Graph */}
+        {/* Graph */}
         <TargetWeightGraph
           currentWeight={currentWeight}
           targetWeight={targetWeight}
@@ -296,54 +398,18 @@ export const TargetWeightScreen = ({
           isDark={isDark}
         />
 
-        {/* Weight Picker Card */}
-        <View
-          style={{
-            width: "100%",
-            alignItems: "center",
-            marginTop: 20,
-          }}
-        >
-          <View
-            style={{
-              width: "90%",
-              backgroundColor: isDark
-                ? "rgba(30, 41, 59, 0.8)"
-                : "rgba(217, 249, 157, 0.5)",
-              borderRadius: 24,
-              paddingVertical: 24,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 80,
-                fontWeight: "bold",
-                color: isDark ? "#A7F3D0" : "#4D7C0F",
-              }}
-            >
-              {targetWeight}
+        {/* Weight Selector */}
+        <View className="w-full items-center mt-2">
+          <View className="w-[90%] bg-lime-200/50 dark:bg-slate-700/80 rounded-3xl py-8 items-center shadow-lg">
+            <Text className="text-[72px] font-bold text-lime-800 dark:text-emerald-200 tracking-[-2px]">
+              {displayWeight}
             </Text>
 
             <View
-              style={{
-                width: "100%",
-                height: RULER_HEIGHT,
-                marginTop: 16,
-              }}
+              className="w-full mt-0"
+              style={{ height: RULER_HEIGHT }}
             >
-              <View
-                style={{
-                  width: 4,
-                  height: 4,
-                  backgroundColor: isDark ? "#A7F3D0" : "#4D7C0F",
-                  borderRadius: 2,
-                  position: "absolute",
-                  alignSelf: "center",
-                  top: 0,
-                  zIndex: 10,
-                }}
-              />
+              <View className="w-1 h-1 bg-lime-800 dark:bg-emerald-200 rounded-full absolute self-center top-0 z-10" />
               <FlatList
                 ref={flatListRef}
                 data={rulerData}
@@ -351,41 +417,39 @@ export const TargetWeightScreen = ({
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
-                  paddingHorizontal: (SCREEN_WIDTH * 0.9) / 2 - ITEM_WIDTH / 2,
+                  paddingHorizontal:
+                    (SCREEN_WIDTH * 0.9) / 2 -
+                    ITEM_WIDTH / 2,
                 }}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 snapToInterval={ITEM_WIDTH}
                 decelerationRate="fast"
                 getItemLayout={getItemLayout}
-                initialScrollIndex={targetWeight - (unit === "kg" ? 30 : 66)}
+                initialScrollIndex={
+                  targetWeight - (unit === "kg" ? 30 : 66)
+                }
                 renderItem={({ item }) => {
                   const isMajorTick = item % 10 === 0;
                   const isHalfTick = item % 5 === 0;
                   return (
                     <View
-                      style={{
-                        width: ITEM_WIDTH,
-                        height: "100%",
-                        alignItems: "center",
-                      }}
+                      className="items-center h-full"
+                      style={{ width: ITEM_WIDTH }}
                     >
                       <View
+                        className="bg-gray-600 dark:bg-gray-500"
                         style={{
                           width: isMajorTick ? 2 : 1,
-                          height: isMajorTick ? 40 : isHalfTick ? 30 : 20,
-                          backgroundColor: isDark ? "#4B5563" : "#A1A1AA",
+                          height: isMajorTick
+                            ? 40
+                            : isHalfTick
+                              ? 30
+                              : 20,
                         }}
                       />
                       {isMajorTick && (
-                        <Text
-                          style={{
-                            position: "absolute",
-                            top: 45,
-                            fontSize: 14,
-                            color: isDark ? "#6B7280" : "#71717A",
-                          }}
-                        >
+                        <Text className="absolute top-11 text-sm text-gray-500 dark:text-gray-400 font-medium">
                           {item}
                         </Text>
                       )}
@@ -394,51 +458,22 @@ export const TargetWeightScreen = ({
                 }}
               />
             </View>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "600",
-                color: isDark ? "#9CA3AF" : "#4B5563",
-                marginTop: 10,
-              }}
-            >
+            <Text className="text-xl font-semibold text-gray-600 dark:text-gray-400 mt-4 tracking-widest">
               {unit.toUpperCase()}
             </Text>
           </View>
         </View>
 
-        {/* Bottom Info Box */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark ? "#1F2937" : "#fff",
-            padding: 16,
-            borderRadius: 16,
-            margin: 20,
-            marginTop: "auto",
-          }}
-        >
-          <Text style={{ fontSize: 32, marginRight: 12 }}>👍</Text>
-          <View>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: isDark ? "#F9FAFB" : "#1F2937",
-              }}
-            >
+        {/* Bottom Message */}
+        <View className="flex-row items-center bg-white dark:bg-gray-800 p-5 rounded-2xl m-5 mt-10 shadow-sm">
+          <Text className="text-[32px] mr-4">👍</Text>
+          <View className="flex-1">
+            <Text className="text-base font-bold text-gray-800 dark:text-gray-50 mb-1">
               Select Target Weight
             </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: isDark ? "#9CA3AF" : "#4B5563",
-                marginTop: 2,
-                lineHeight: 20,
-              }}
-            >
-              Choose a target that makes you feel strong, healthy and confident.
+            <Text className="text-sm text-gray-600 dark:text-gray-400 leading-5">
+              Choose a target that makes you feel strong,
+              healthy and confident.
             </Text>
           </View>
         </View>
