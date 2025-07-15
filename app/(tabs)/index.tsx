@@ -16,16 +16,15 @@ import { Q } from "@nozbe/watermelondb";
 import { database } from "@/db/index";
 import { DiaryEntry } from "@/db/models/DiaryEntry";
 
-// Import from our new modular structure
 import { HeroSection } from "@/modules/home/components/HeroSection";
 import { PlansBanner } from "@/modules/home/components/PlansBanner";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 import { useHomeStore } from "@/modules/home/store/homeStore";
-import Loader from "@/components/Loader";
+
 import { QuickLogModal } from "@/modules/nutrition";
 import { useAppStore } from "@/stores/appStore";
+import { Pressable } from "react-native";
 
-// --- 1. ADD THESE IMPORTS ---
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
 import ProductsSection from "@/modules/products/components/ProductsSection";
 
@@ -38,8 +37,20 @@ export default function Index(): JSX.Element {
     useState(false);
   const { currentUser } = useAppStore();
   const { todayStats, updateTodayStats } = useHomeStore();
+  const [debugTapCount, setDebugTapCount] = useState(0);
 
-  // --- 2. ADD THIS LOGIC TO FETCH PRODUCT DATA ---
+  const handleTitlePress = () => {
+    const newCount = debugTapCount + 1;
+    if (newCount >= 5) {
+      router.push("/(modals)/db-debug");
+      setDebugTapCount(0);
+    } else {
+      setDebugTapCount(newCount);
+
+      setTimeout(() => setDebugTapCount(0), 2000);
+    }
+  };
+
   const { fetchProducts } = useProductsStore();
 
   useEffect(() => {
@@ -53,7 +64,6 @@ export default function Index(): JSX.Element {
 
     const todayString = format(new Date(), "yyyy-MM-dd");
 
-    // 1. Create the observable query for today's diary entries
     const entriesObservable = database.collections
       .get<DiaryEntry>("diary_entries")
       .query(
@@ -62,19 +72,16 @@ export default function Index(): JSX.Element {
       )
       .observe();
 
-    // 2. Subscribe to it. This code runs whenever today's diary changes.
     const subscription = entriesObservable.subscribe(
       (entries) => {
         console.log(
           `[Home Screen Bridge] Detected ${entries.length} entries for today.`
         );
 
-        // 3. Call the Zustand action to update the hero section stats
         updateTodayStats(entries, currentUser);
       }
     );
 
-    // 4. Cleanup function to prevent memory leaks
     return () => {
       subscription.unsubscribe();
     };
@@ -132,12 +139,14 @@ export default function Index(): JSX.Element {
         }}
       >
         <View>
-          <Text
-            className="text-2xl font-jetbrains-mono font-bold"
-            style={{ color: colors.primary }}
-          >
-            FitNext
-          </Text>
+          <Pressable onPress={handleTitlePress}>
+            <Text
+              className="text-2xl font-jetbrains-mono font-bold"
+              style={{ color: colors.primary }}
+            >
+              FitNext
+            </Text>
+          </Pressable>
           <Text
             className="text-sm"
             style={{ color: colors.text.secondary }}
