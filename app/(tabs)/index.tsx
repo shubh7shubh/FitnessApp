@@ -28,6 +28,8 @@ import { Pressable } from "react-native";
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
 import ProductsSection from "@/modules/products/components/ProductsSection";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 export default function Index(): JSX.Element {
   const router = useRouter();
   const { colors } = useTheme();
@@ -38,6 +40,7 @@ export default function Index(): JSX.Element {
   const { currentUser } = useAppStore();
   const { todayStats, updateTodayStats } = useHomeStore();
   const [debugTapCount, setDebugTapCount] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const handleTitlePress = () => {
     const newCount = debugTapCount + 1;
@@ -117,10 +120,10 @@ export default function Index(): JSX.Element {
       onPress: () => setShowQuickLogModal(true),
     },
     {
-      icon: "analytics",
-      label: "Progress",
-      color: "#8B5CF6",
-      onPress: () => setShowQuickLogModal(true),
+      icon: "library-outline",
+      label: "Blogs",
+      color: "#F59E0B",
+      onPress: () => router.push("/blogs"),
     },
   ];
 
@@ -133,6 +136,7 @@ export default function Index(): JSX.Element {
       <View
         className="flex-row justify-between items-center px-6 py-4 pt-3"
         style={{
+          paddingTop: insets.top + 10,
           backgroundColor: colors.surface,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
