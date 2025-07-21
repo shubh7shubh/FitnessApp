@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   Dimensions,
   Image,
+  useColorScheme,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -13,7 +14,6 @@ import Animated, {
   withSpring,
   withTiming,
   interpolate,
-  Extrapolate,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/modules/home/hooks/useTheme";
@@ -21,28 +21,26 @@ import { useTheme } from "@/modules/home/hooks/useTheme";
 const { width } = Dimensions.get("window");
 
 interface GenderAgeScreenProps {
-  onDataSelect?: (data: {
-    gender: string;
-    age: number;
-  }) => void;
+  gender: string | null;
+  age: number;
+  onGenderSelect: (gender: "male" | "female") => void;
+  onAgeChange: (age: number) => void;
 }
 
-const AnimatedPressable =
-  Animated.createAnimatedComponent(Pressable);
-
 export const GenderAgeScreen = ({
-  onDataSelect,
+  gender,
+  age,
+  onGenderSelect,
+  onAgeChange,
 }: GenderAgeScreenProps) => {
-  const { isDark } = useTheme();
-  const [selectedGender, setSelectedGender] =
-    useState<string>("");
-  const [selectedAge, setSelectedAge] =
-    useState<number>(25);
+  const isDark = useColorScheme() === "dark";
 
-  // Animation values
   const maleScale = useSharedValue(1);
   const femaleScale = useSharedValue(1);
-  const ageAnimation = useSharedValue(0);
+  const ageOpacity = useSharedValue(gender ? 1 : 0);
+  const ageTranslateY = useSharedValue(gender ? 0 : 20);
+
+  const ageAnimation = useSharedValue(gender ? 1 : 0);
 
   // Generate age array (18 to 80)
   const ages = Array.from({ length: 63 }, (_, i) => i + 18);
@@ -67,11 +65,26 @@ export const GenderAgeScreen = ({
       : "rgba(59, 130, 246, 0.4)",
   };
 
-  const handleGenderSelect = (gender: string) => {
-    setSelectedGender(gender);
+  // Scroll to selected age when age prop changes
+  useEffect(() => {
+    if (ageScrollRef.current && age) {
+      const ageIndex = age - 18;
+      const scrollPosition = ageIndex * 88; // 80 (card width) + 8 (margins)
+      ageScrollRef.current.scrollTo({
+        x: scrollPosition,
+        animated: true,
+      });
+    }
+  }, [age]);
+
+  const handleGenderSelect = (
+    selectedGender: "male" | "female"
+  ) => {
+    // Call parent's function to update state
+    onGenderSelect(selectedGender);
 
     // Immediate response with minimal animation
-    if (gender === "male") {
+    if (selectedGender === "male") {
       maleScale.value = withSpring(1.02, {
         damping: 15,
         stiffness: 300,
@@ -97,14 +110,20 @@ export const GenderAgeScreen = ({
 
     // Immediate age section reveal
     ageAnimation.value = withTiming(1, { duration: 150 });
-
-    // Call callback immediately
-    onDataSelect?.({ gender, age: selectedAge });
   };
 
-  const handleAgeSelect = (age: number) => {
-    setSelectedAge(age);
-    onDataSelect?.({ gender: selectedGender, age });
+  const handleAgeSelect = (selectedAge: number) => {
+    // Call parent's function to update state
+    onAgeChange(selectedAge);
+  };
+
+  const handleAgeScroll = (event: any) => {
+    const newAge =
+      Math.round(event.nativeEvent.contentOffset.x / 88) +
+      18; // Adjusted for card width + margin
+    if (newAge !== age && newAge >= 18 && newAge <= 80) {
+      onAgeChange(newAge);
+    }
   };
 
   const maleAnimatedStyle = useAnimatedStyle(() => ({
@@ -122,37 +141,38 @@ export const GenderAgeScreen = ({
         translateY: interpolate(
           ageAnimation.value,
           [0, 1],
-          [30, 0],
-          Extrapolate.CLAMP
+          [30, 0]
         ),
       },
     ],
   }));
 
   const GenderCard = ({
-    gender,
+    genderType,
     imageSource,
     label,
     isSelected,
     onPress,
     animatedStyle,
   }: {
-    gender: string;
+    genderType: string;
     imageSource: any;
     label: string;
     isSelected: boolean;
     onPress: () => void;
-    animatedStyle?: any;
+    animatedStyle: any;
   }) => {
     const cardSize = width * 0.35;
     const cardBackground =
-      gender === "male"
+      genderType === "male"
         ? theme.maleCardBackground
         : theme.femaleCardBackground;
 
     return (
+      // 1. Use a standard Pressable from 'react-native'
       <Pressable onPressIn={() => onPress()}>
-        <View
+        {/* 2. Your Animated.View goes inside and gets the style */}
+        <Animated.View
           style={[
             animatedStyle,
             {
@@ -161,6 +181,8 @@ export const GenderAgeScreen = ({
             },
           ]}
         >
+          {/* All your existing beautiful styling for the avatar and text goes here */}
+
           {/* Perfect Circle Avatar */}
           <View
             style={{
@@ -209,17 +231,17 @@ export const GenderAgeScreen = ({
           >
             {label}
           </Text>
-        </View>
+        </Animated.View>
       </Pressable>
     );
   };
 
   const AgeCard = ({
-    age,
+    cardAge,
     isSelected,
     onPress,
   }: {
-    age: number;
+    cardAge: number;
     isSelected: boolean;
     onPress: () => void;
   }) => (
@@ -255,7 +277,7 @@ export const GenderAgeScreen = ({
           color: isSelected ? "#FFFFFF" : theme.textPrimary,
         }}
       >
-        {age}
+        {cardAge}
       </Text>
       <Text
         style={{
@@ -323,26 +345,28 @@ export const GenderAgeScreen = ({
           }}
         >
           <GenderCard
-            gender="male"
+            genderType="male"
             imageSource={require("@/assets/images/male.png")}
             label="Male"
-            isSelected={selectedGender === "male"}
+            isSelected={gender === "male"}
             onPress={() => handleGenderSelect("male")}
             animatedStyle={maleAnimatedStyle}
           />
           <GenderCard
-            gender="female"
+            genderType="female"
             imageSource={require("@/assets/images/female.png")}
             label="Female"
-            isSelected={selectedGender === "female"}
+            isSelected={gender === "female"}
             onPress={() => handleGenderSelect("female")}
             animatedStyle={femaleAnimatedStyle}
           />
         </View>
 
         {/* Age Selection */}
-        {selectedGender && (
-          <View style={[ageContainerStyle, { flex: 1 }]}>
+        {gender && (
+          <Animated.View
+            style={[ageContainerStyle, { flex: 1 }]}
+          >
             <Text
               style={{
                 fontSize: 24,
@@ -361,26 +385,26 @@ export const GenderAgeScreen = ({
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
-                paddingLeft: 20,
-                paddingRight: 20,
+                paddingHorizontal: (width - 80) / 2,
                 alignItems: "center",
               }}
-              snapToInterval={96}
+              snapToInterval={88} // Adjusted for card width + margins
               decelerationRate="fast"
               style={{ flexGrow: 0, marginHorizontal: -24 }}
+              onMomentumScrollEnd={handleAgeScroll}
             >
-              {ages.map((age) => (
+              {ages.map((ageItem) => (
                 <AgeCard
-                  key={age}
-                  age={age}
-                  isSelected={selectedAge === age}
-                  onPress={() => handleAgeSelect(age)}
+                  key={ageItem}
+                  cardAge={ageItem}
+                  isSelected={age === ageItem}
+                  onPress={() => handleAgeSelect(ageItem)}
                 />
               ))}
             </ScrollView>
 
             <View style={{ height: 40 }} />
-          </View>
+          </Animated.View>
         )}
       </View>
     </LinearGradient>

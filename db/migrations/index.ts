@@ -6,6 +6,18 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
+      toVersion: 6,
+      steps: [
+        addColumns({
+          table: "users",
+          columns: [
+            { name: "server_id", type: "string", isIndexed: true },
+            { name: "email", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
+    {
       toVersion: 5,
       steps: [
         addColumns({

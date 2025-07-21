@@ -3,121 +3,242 @@ import { View, SafeAreaView, Pressable, Text } from "react-native";
 import PagerView from "react-native-pager-view";
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-
+import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  useAnimatedProps,
+  withTiming,
+} from "react-native-reanimated";
+import { Feather } from "@expo/vector-icons";
 import { GenderAgeScreen } from "@/modules/onboarding/components/screens/GenderAgeScreen";
 import { WeightScreen } from "@/modules/onboarding/components/screens/WeightScreen";
 import { TargetWeightScreen } from "@/modules/onboarding/components/screens/TargetWeightScreen";
 import { GoalScreen } from "@/modules/onboarding/components/screens/GoalScreen";
 import { useAppStore } from "@/stores/appStore";
+import { createUser } from "@/db/actions/userActions";
 import { useTheme } from "@/modules/home/hooks/useTheme";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+interface NextButtonProps {
+  progress: number;
+  onPress: () => void;
+  disabled: boolean;
+}
+
+const NextButton = ({ progress, onPress, disabled }: NextButtonProps) => {
+  const CIRCLE_LENGTH = 2 * Math.PI * 28;
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: withTiming(CIRCLE_LENGTH - CIRCLE_LENGTH * progress, {
+      duration: 250,
+    }),
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={{
+        width: 72,
+        height: 72,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: disabled ? "#9CA3AF" : "#68D391",
+        borderRadius: 36,
+        opacity: disabled ? 0.5 : 1,
+        shadowColor: disabled ? "rgba(0,0,0,0.1)" : "rgba(104, 211, 145, 0.4)",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: disabled ? 0.1 : 0.4,
+        shadowRadius: 16,
+        elevation: disabled ? 4 : 12,
+      }}
+    >
+      <Svg width="72" height="72" style={{ position: "absolute" }}>
+        <Circle
+          cx="36"
+          cy="36"
+          r="28"
+          stroke="rgba(255,255,255,0.3)"
+          strokeWidth="3"
+          fill="transparent"
+        />
+        <AnimatedCircle
+          cx="36"
+          cy="36"
+          r="28"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          fill="transparent"
+          strokeDasharray={CIRCLE_LENGTH}
+          animatedProps={animatedProps}
+          strokeLinecap="round"
+          transform="rotate(-90 36 36)"
+        />
+      </Svg>
+      <Feather
+        name="arrow-right"
+        size={24}
+        color="#FFFFFF"
+        style={{ marginLeft: 2 }}
+      />
+    </Pressable>
+  );
+};
 
 export default function OnboardingFlow() {
   const pagerRef = useRef<PagerView>(null);
   const router = useRouter();
   const { isDark } = useTheme();
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedGoal, setSelectedGoal] = useState<string>("lose_weight");
-  const [genderAgeData, setGenderAgeData] = useState<{
-    gender: string;
-    age: number;
-  }>({
-    gender: "",
+
+  const { setOnboardingComplete, supabaseUser } = useAppStore();
+
+  // --- Consolidated State ---
+  // A single source of truth for all onboarding data.
+  const [onboardingData, setOnboardingData] = useState({
+    gender: null as "male" | "female" | null,
     age: 25,
-  });
-  const [weightData, setWeightData] = useState<{
-    weight: number;
-    unit: "kg" | "lbs";
-  }>({
     weight: 78,
-    unit: "kg",
-  });
-  const [targetWeightData, setTargetWeightData] = useState<{
-    targetWeight: number;
-    unit: "kg" | "lbs";
-  }>({
+    weightUnit: "kg" as "kg" | "lbs",
     targetWeight: 72,
-    unit: "kg",
+    targetWeightUnit: "kg" as "kg" | "lbs",
+    goal: "lose_weight",
+    // NOTE: These are not collected in the current UI.
+    // We are providing defaults to allow user creation.
+    // You should add screens to collect this data from the user.
+    heightCm: 175,
+    activityLevel: "sedentary" as
+      | "sedentary"
+      | "lightly_active"
+      | "moderately_active"
+      | "very_active",
   });
-  const { setOnboardingComplete, setSelectedGoal: setStoreGoal } =
-    useAppStore();
 
   // Theme configuration to match GenderAgeScreen
   const backgroundColors = isDark
     ? (["#0F172A", "#1E293B"] as const)
     : (["#FFFFFF", "#FDF2F8"] as const); // White to light pink
 
-  const handleGenderAgeSelect = useCallback(
-    (data: { gender: string; age: number }) => {
-      setGenderAgeData(data);
-      console.log("Gender and Age selected:", data);
-    },
-    []
-  );
+  const handleGenderSelect = useCallback((gender: "male" | "female") => {
+    setOnboardingData((prev) => ({ ...prev, gender }));
+  }, []);
+
+  const handleAgeChange = useCallback((age: number) => {
+    setOnboardingData((prev) => ({ ...prev, age }));
+  }, []);
 
   const handleWeightSelect = useCallback(
     (data: { weight: number; unit: "kg" | "lbs" }) => {
-      setWeightData(data);
-      console.log("Weight selected:", data);
+      setOnboardingData((prev) => ({
+        ...prev,
+        weight: data.weight,
+        weightUnit: data.unit,
+      }));
     },
     []
   );
 
   const handleTargetWeightSelect = useCallback(
     (data: { targetWeight: number; unit: "kg" | "lbs" }) => {
-      setTargetWeightData(data);
-      console.log("Target weight selected:", data);
+      setOnboardingData((prev) => ({
+        ...prev,
+        targetWeight: data.targetWeight,
+        targetWeightUnit: data.unit,
+      }));
     },
     []
   );
 
   const handleGoalSelect = useCallback((goal: string) => {
-    setSelectedGoal(goal);
-    console.log("Goal selected:", goal);
+    setOnboardingData((prev) => ({ ...prev, goal }));
   }, []);
 
   const onboardingSteps = useMemo(
     () => [
-      <GenderAgeScreen key="gender-age" onDataSelect={handleGenderAgeSelect} />,
+      <GenderAgeScreen
+        key="gender-age"
+        gender={onboardingData.gender}
+        age={onboardingData.age}
+        onGenderSelect={handleGenderSelect}
+        onAgeChange={handleAgeChange}
+      />,
       <WeightScreen key="weight" onWeightSelect={handleWeightSelect} />,
       <TargetWeightScreen
         key="target-weight"
-        currentWeight={weightData.weight}
-        currentUnit={weightData.unit}
-        targetWeight={targetWeightData.targetWeight}
+        currentWeight={onboardingData.weight}
+        currentUnit={onboardingData.weightUnit}
+        targetWeight={onboardingData.targetWeight}
         onTargetWeightSelect={handleTargetWeightSelect}
       />,
       <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
     ],
     [
-      handleGenderAgeSelect,
-      handleWeightSelect,
-      handleTargetWeightSelect,
-      handleGoalSelect,
-      weightData,
-      targetWeightData,
+      onboardingData.gender,
+      onboardingData.age,
+      onboardingData.weight,
+      onboardingData.targetWeight,
     ]
   );
 
   const totalPages = onboardingSteps.length;
+  const progress = (currentPage + 1) / totalPages;
+
+  const handleFinishOnboarding = async () => {
+    if (!supabaseUser) {
+      console.error("Cannot complete onboarding without a Supabase user.");
+      // Optionally, navigate back to login
+      router.replace("/login");
+      return;
+    }
+
+    // Convert weights to KG if they are in LBS
+    const currentWeightInKg =
+      onboardingData.weightUnit === "lbs"
+        ? onboardingData.weight * 0.453592
+        : onboardingData.weight;
+
+    const targetWeightInKg =
+      onboardingData.targetWeightUnit === "lbs"
+        ? onboardingData.targetWeight * 0.453592
+        : onboardingData.targetWeight;
+
+    // Approximate date of birth from age
+    const birthYear = new Date().getFullYear() - onboardingData.age;
+    const dateOfBirth = `${birthYear}-01-01`;
+
+    const userData = {
+      server_id: supabaseUser.id,
+      email: supabaseUser.email,
+      name: supabaseUser.user_metadata.full_name || "New User",
+      gender: onboardingData.gender!,
+      dateOfBirth: dateOfBirth,
+      heightCm: onboardingData.heightCm,
+      currentWeightKg: Math.round(currentWeightInKg),
+      goalType: onboardingData.goal,
+      activityLevel: onboardingData.activityLevel,
+      targetWeightKg: Math.round(targetWeightInKg),
+    };
+
+    try {
+      console.log("Creating user with data:", userData);
+      const newUser = await createUser(userData);
+      console.log("Successfully created user in WatermelonDB:", newUser?.id);
+
+      // Now that the user is created, finish the process
+      setOnboardingComplete(true);
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      // You should show an error message to the user here
+    }
+  };
 
   const goToNextPage = () => {
     if (currentPage < totalPages - 1) {
       pagerRef.current?.setPage(currentPage + 1);
     } else {
       // This is the last page, finish onboarding
-      console.log("Onboarding Complete!", {
-        genderAge: genderAgeData,
-        weight: weightData,
-        targetWeight: targetWeightData,
-        goal: selectedGoal,
-      });
-
-      // Save the selected goal to the store
-      setStoreGoal(selectedGoal);
-      setOnboardingComplete(true);
-
-      // Navigate to the main app
-      router.replace("/(tabs)");
+      handleFinishOnboarding();
     }
   };
 
@@ -129,16 +250,16 @@ export default function OnboardingFlow() {
 
   const canProceed = () => {
     if (currentPage === 0) {
-      return genderAgeData.gender !== "";
+      return onboardingData.gender !== null;
     }
     if (currentPage === 1) {
-      return weightData.weight > 0;
+      return onboardingData.weight > 0;
     }
     if (currentPage === 2) {
-      return targetWeightData.targetWeight > 0;
+      return onboardingData.targetWeight > 0;
     }
     if (currentPage === 3) {
-      return selectedGoal !== "";
+      return onboardingData.goal !== "";
     }
     return false;
   };
@@ -163,7 +284,7 @@ export default function OnboardingFlow() {
           ))}
         </PagerView>
 
-        {/* Navigation Buttons */}
+        {/* --- REFINED NAVIGATION BUTTONS --- */}
         <View
           style={{
             flexDirection: "row",
@@ -199,42 +320,19 @@ export default function OnboardingFlow() {
                   fontWeight: "600",
                 }}
               >
-                ← Back
+                Back
               </Text>
             </Pressable>
           ) : (
+            // Spacer
             <View />
           )}
 
-          <Pressable
+          <NextButton
+            progress={progress}
             onPress={goToNextPage}
             disabled={!canProceed()}
-            style={{
-              paddingHorizontal: 40,
-              paddingVertical: 16,
-              borderRadius: 30,
-              backgroundColor: canProceed() ? "#68D391" : "#9CA3AF",
-              opacity: canProceed() ? 1 : 0.5,
-              shadowColor: canProceed()
-                ? "rgba(104, 211, 145, 0.4)"
-                : "rgba(0,0,0,0.1)",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: canProceed() ? 0.4 : 0.1,
-              shadowRadius: 16,
-              elevation: canProceed() ? 12 : 4,
-            }}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                textAlign: "center",
-                fontSize: 18,
-                fontWeight: "700",
-              }}
-            >
-              {currentPage === totalPages - 1 ? "Finish" : "Next"}
-            </Text>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     </LinearGradient>

@@ -8,7 +8,7 @@ import { weightEntrySchema } from "./weightEntrySchema";
 
 // This is the master schema for our entire application.
 export const myAppSchema = appSchema({
-  version: 5,
+  version: 6,
 
   // This is the list of all tables in our database. For now, it's just one.
   tables: [

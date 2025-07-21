@@ -9,8 +9,8 @@ export const userSchema = tableSchema({
 
   // This is the list of columns in the 'users' table.
   columns: [
-    // --- Basic Profile Fields ---
-    // A column to store the user's full name. It's a 'string' (text).
+    { name: "server_id", type: "string", isIndexed: true },
+    { name: "email", type: "string", isOptional: true },
     { name: "name", type: "string" },
 
     // A column for the user's birth date. We'll store it as text like '1995-05-20'.
@@ -28,14 +28,38 @@ export const userSchema = tableSchema({
 
     { name: "activity_level", type: "string" }, // 'sedentary', 'lightly_active', etc.
     { name: "goal_type", type: "string" }, // 'lose', 'maintain', 'gain'
-    { name: "goal_rate_kg_per_week", type: "number", isOptional: true },
+    {
+      name: "goal_rate_kg_per_week",
+      type: "number",
+      isOptional: true,
+    },
 
     { name: "tdee", type: "number", isOptional: true },
-    { name: "daily_calorie_goal", type: "number", isOptional: true },
-    { name: "protein_goal_g", type: "number", isOptional: true },
-    { name: "carbs_goal_g", type: "number", isOptional: true },
-    { name: "fat_goal_g", type: "number", isOptional: true },
-    { name: "fiber_goal_g", type: "number", isOptional: true },
+    {
+      name: "daily_calorie_goal",
+      type: "number",
+      isOptional: true,
+    },
+    {
+      name: "protein_goal_g",
+      type: "number",
+      isOptional: true,
+    },
+    {
+      name: "carbs_goal_g",
+      type: "number",
+      isOptional: true,
+    },
+    {
+      name: "fat_goal_g",
+      type: "number",
+      isOptional: true,
+    },
+    {
+      name: "fiber_goal_g",
+      type: "number",
+      isOptional: true,
+    },
 
     { name: "created_at", type: "number" },
     // 'updated_at' stores the last time the record was changed.
