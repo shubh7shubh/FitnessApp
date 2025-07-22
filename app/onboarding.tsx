@@ -1,5 +1,15 @@
-import React, { useRef, useState, useCallback, useMemo } from "react";
-import { View, SafeAreaView, Pressable, Text } from "react-native";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
+import {
+  View,
+  SafeAreaView,
+  Pressable,
+  Text,
+} from "react-native";
 import PagerView from "react-native-pager-view";
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,7 +27,8 @@ import { useAppStore } from "@/stores/appStore";
 import { createUser } from "@/db/actions/userActions";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedCircle =
+  Animated.createAnimatedComponent(Circle);
 
 interface NextButtonProps {
   progress: number;
@@ -25,13 +36,20 @@ interface NextButtonProps {
   disabled: boolean;
 }
 
-const NextButton = ({ progress, onPress, disabled }: NextButtonProps) => {
+const NextButton = ({
+  progress,
+  onPress,
+  disabled,
+}: NextButtonProps) => {
   const CIRCLE_LENGTH = 2 * Math.PI * 28;
 
   const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: withTiming(CIRCLE_LENGTH - CIRCLE_LENGTH * progress, {
-      duration: 250,
-    }),
+    strokeDashoffset: withTiming(
+      CIRCLE_LENGTH - CIRCLE_LENGTH * progress,
+      {
+        duration: 250,
+      }
+    ),
   }));
 
   return (
@@ -46,14 +64,20 @@ const NextButton = ({ progress, onPress, disabled }: NextButtonProps) => {
         backgroundColor: disabled ? "#9CA3AF" : "#68D391",
         borderRadius: 36,
         opacity: disabled ? 0.5 : 1,
-        shadowColor: disabled ? "rgba(0,0,0,0.1)" : "rgba(104, 211, 145, 0.4)",
+        shadowColor: disabled
+          ? "rgba(0,0,0,0.1)"
+          : "rgba(104, 211, 145, 0.4)",
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: disabled ? 0.1 : 0.4,
         shadowRadius: 16,
         elevation: disabled ? 4 : 12,
       }}
     >
-      <Svg width="72" height="72" style={{ position: "absolute" }}>
+      <Svg
+        width="72"
+        height="72"
+        style={{ position: "absolute" }}
+      >
         <Circle
           cx="36"
           cy="36"
@@ -91,7 +115,11 @@ export default function OnboardingFlow() {
   const { isDark } = useTheme();
   const [currentPage, setCurrentPage] = useState(0);
 
-  const { setOnboardingComplete, supabaseUser } = useAppStore();
+  const {
+    setOnboardingComplete,
+    supabaseUser,
+    setCurrentUser,
+  } = useAppStore();
 
   // --- Consolidated State ---
   // A single source of truth for all onboarding data.
@@ -119,9 +147,12 @@ export default function OnboardingFlow() {
     ? (["#0F172A", "#1E293B"] as const)
     : (["#FFFFFF", "#FDF2F8"] as const); // White to light pink
 
-  const handleGenderSelect = useCallback((gender: "male" | "female") => {
-    setOnboardingData((prev) => ({ ...prev, gender }));
-  }, []);
+  const handleGenderSelect = useCallback(
+    (gender: "male" | "female") => {
+      setOnboardingData((prev) => ({ ...prev, gender }));
+    },
+    []
+  );
 
   const handleAgeChange = useCallback((age: number) => {
     setOnboardingData((prev) => ({ ...prev, age }));
@@ -139,7 +170,10 @@ export default function OnboardingFlow() {
   );
 
   const handleTargetWeightSelect = useCallback(
-    (data: { targetWeight: number; unit: "kg" | "lbs" }) => {
+    (data: {
+      targetWeight: number;
+      unit: "kg" | "lbs";
+    }) => {
       setOnboardingData((prev) => ({
         ...prev,
         targetWeight: data.targetWeight,
@@ -162,7 +196,10 @@ export default function OnboardingFlow() {
         onGenderSelect={handleGenderSelect}
         onAgeChange={handleAgeChange}
       />,
-      <WeightScreen key="weight" onWeightSelect={handleWeightSelect} />,
+      <WeightScreen
+        key="weight"
+        onWeightSelect={handleWeightSelect}
+      />,
       <TargetWeightScreen
         key="target-weight"
         currentWeight={onboardingData.weight}
@@ -170,7 +207,10 @@ export default function OnboardingFlow() {
         targetWeight={onboardingData.targetWeight}
         onTargetWeightSelect={handleTargetWeightSelect}
       />,
-      <GoalScreen key="goal" onGoalSelect={handleGoalSelect} />,
+      <GoalScreen
+        key="goal"
+        onGoalSelect={handleGoalSelect}
+      />,
     ],
     [
       onboardingData.gender,
@@ -185,7 +225,9 @@ export default function OnboardingFlow() {
 
   const handleFinishOnboarding = async () => {
     if (!supabaseUser) {
-      console.error("Cannot complete onboarding without a Supabase user.");
+      console.error(
+        "Cannot complete onboarding without a Supabase user."
+      );
       // Optionally, navigate back to login
       router.replace("/login");
       return;
@@ -203,13 +245,15 @@ export default function OnboardingFlow() {
         : onboardingData.targetWeight;
 
     // Approximate date of birth from age
-    const birthYear = new Date().getFullYear() - onboardingData.age;
+    const birthYear =
+      new Date().getFullYear() - onboardingData.age;
     const dateOfBirth = `${birthYear}-01-01`;
 
     const userData = {
       server_id: supabaseUser.id,
       email: supabaseUser.email,
-      name: supabaseUser.user_metadata.full_name || "New User",
+      name:
+        supabaseUser.user_metadata.full_name || "New User",
       gender: onboardingData.gender!,
       dateOfBirth: dateOfBirth,
       heightCm: onboardingData.heightCm,
@@ -222,11 +266,22 @@ export default function OnboardingFlow() {
     try {
       console.log("Creating user with data:", userData);
       const newUser = await createUser(userData);
-      console.log("Successfully created user in WatermelonDB:", newUser?.id);
+      console.log(
+        "Successfully created user in WatermelonDB:",
+        newUser?.id
+      );
 
       // Now that the user is created, finish the process
-      setOnboardingComplete(true);
-      router.replace("/(tabs)");
+      if (newUser) {
+        setCurrentUser(newUser);
+        setOnboardingComplete(true);
+        router.replace("/(tabs)");
+      } else {
+        console.error(
+          "Failed to create user: createUser returned undefined"
+        );
+        // Handle the error case - maybe show an alert or stay on onboarding
+      }
     } catch (error) {
       console.error("Failed to create user:", error);
       // You should show an error message to the user here
@@ -265,7 +320,10 @@ export default function OnboardingFlow() {
   };
 
   return (
-    <LinearGradient colors={backgroundColors} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={backgroundColors}
+      style={{ flex: 1 }}
+    >
       <SafeAreaView style={{ flex: 1 }}>
         <Stack.Screen options={{ headerShown: false }} />
 
@@ -275,7 +333,9 @@ export default function OnboardingFlow() {
           style={{ flex: 1 }}
           initialPage={0}
           scrollEnabled={false}
-          onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
+          onPageSelected={(e) =>
+            setCurrentPage(e.nativeEvent.position)
+          }
         >
           {onboardingSteps.map((step, index) => (
             <View key={index} style={{ flex: 1 }}>
@@ -303,9 +363,13 @@ export default function OnboardingFlow() {
                 paddingHorizontal: 24,
                 paddingVertical: 12,
                 borderRadius: 30,
-                backgroundColor: isDark ? "#374151" : "rgba(255,255,255,0.8)",
+                backgroundColor: isDark
+                  ? "#374151"
+                  : "rgba(255,255,255,0.8)",
                 borderWidth: 2,
-                borderColor: isDark ? "#4B5563" : "rgba(59, 130, 246, 0.3)",
+                borderColor: isDark
+                  ? "#4B5563"
+                  : "rgba(59, 130, 246, 0.3)",
                 shadowColor: "rgba(0,0,0,0.1)",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,

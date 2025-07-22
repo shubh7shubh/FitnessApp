@@ -25,6 +25,7 @@ export const userSchema = tableSchema({
 
     // A column for weight. It's also a 'number'.
     { name: "current_weight_kg", type: "number" },
+    { name: "goal_weight_kg", type: "number" },
 
     { name: "activity_level", type: "string" }, // 'sedentary', 'lightly_active', etc.
     { name: "goal_type", type: "string" }, // 'lose', 'maintain', 'gain'

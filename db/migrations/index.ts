@@ -6,6 +6,15 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
+      toVersion: 7,
+      steps: [
+        addColumns({
+          table: "users",
+          columns: [{ name: "goal_weight_kg", type: "number" }],
+        }),
+      ],
+    },
+    {
       toVersion: 6,
       steps: [
         addColumns({
