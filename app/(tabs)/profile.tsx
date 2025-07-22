@@ -1,19 +1,47 @@
 import Loader from "@/components/Loader";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { useAppStore } from "@/stores/appStore";
 import { useRouter } from "expo-router";
+import { signout } from "@/db/actions/authActions";
 
 export default function Profile() {
-  const { currentUser, logout, selectedGoal } = useAppStore();
+  const { currentUser, logout, selectedGoal } =
+    useAppStore();
   const router = useRouter();
 
   if (!currentUser) return <Loader />;
 
   const handleEditProfile = () => {
-    // Navigate to onboarding screen to edit profile
     router.push("/onboarding");
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Confirm Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Sign Out",
+          style: "destructive",
+
+          onPress: async () => {
+            await signout();
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -21,14 +49,30 @@ export default function Profile() {
       {/* HEADER */}
       <View className="flex-row justify-between items-center px-4 py-3 border-b border-surface">
         <View className="flex-row items-center">
-          <Text className="text-xl font-bold text-white">Profile</Text>
+          <Text className="text-xl font-bold text-white">
+            Profile
+          </Text>
         </View>
         <View className="flex-row gap-4">
-          <TouchableOpacity className="p-1" onPress={handleEditProfile}>
-            <Ionicons name="create-outline" size={24} color="#FFFFFF" />
+          <TouchableOpacity
+            className="p-1"
+            onPress={handleEditProfile}
+          >
+            <Ionicons
+              name="create-outline"
+              size={24}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
-          <TouchableOpacity className="p-1" onPress={logout}>
-            <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+          <TouchableOpacity
+            className="p-1"
+            onPress={logout}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={24}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -57,12 +101,16 @@ export default function Profile() {
                 {currentUser.name}
               </Text>
               <Text className="text-sm text-grey mb-2">
-                {currentUser.gender} • Born {currentUser.dateOfBirth}
+                {currentUser.gender} • Born{" "}
+                {currentUser.dateOfBirth}
               </Text>
               {selectedGoal && (
                 <View className="bg-green-500/10 px-3 py-1 rounded-full self-start">
                   <Text className="text-green-500 text-xs font-medium">
-                    Goal: {selectedGoal.replace("_", " ").toUpperCase()}
+                    Goal:{" "}
+                    {selectedGoal
+                      .replace("_", " ")
+                      .toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -79,21 +127,27 @@ export default function Profile() {
                 <Text className="text-2xl font-bold text-white">
                   {currentUser.heightCm}
                 </Text>
-                <Text className="text-sm text-grey">Height (cm)</Text>
+                <Text className="text-sm text-grey">
+                  Height (cm)
+                </Text>
               </View>
               <View className="w-px bg-gray-700 mx-4" />
               <View className="flex-1 items-center">
                 <Text className="text-2xl font-bold text-white">
                   {currentUser.currentWeightKg}
                 </Text>
-                <Text className="text-sm text-grey">Weight (kg)</Text>
+                <Text className="text-sm text-grey">
+                  Weight (kg)
+                </Text>
               </View>
             </View>
           </View>
 
           {/* FITNESS GOALS */}
           <View className="bg-surface rounded-2xl p-4 mb-4">
-            <Text className="text-white font-semibold mb-3">Fitness Goals</Text>
+            <Text className="text-white font-semibold mb-3">
+              Fitness Goals
+            </Text>
             <View className="flex-row items-center">
               <Text className="text-2xl mr-3">
                 {selectedGoal === "lose_weight"
@@ -110,7 +164,9 @@ export default function Profile() {
                       ? "Maintain Weight"
                       : "Gain Muscle"}
                 </Text>
-                <Text className="text-grey text-sm">Primary goal</Text>
+                <Text className="text-grey text-sm">
+                  Primary goal
+                </Text>
               </View>
             </View>
           </View>
@@ -121,7 +177,11 @@ export default function Profile() {
             onPress={handleEditProfile}
           >
             <View className="flex-row items-center">
-              <Ionicons name="create-outline" size={20} color="white" />
+              <Ionicons
+                name="create-outline"
+                size={20}
+                color="white"
+              />
               <Text className="text-white font-semibold ml-2">
                 Edit Profile
               </Text>
@@ -130,7 +190,9 @@ export default function Profile() {
 
           {/* ACCOUNT ACTIONS */}
           <View className="bg-surface rounded-2xl p-4">
-            <Text className="text-white font-semibold mb-3">Account</Text>
+            <Text className="text-white font-semibold mb-3">
+              Account
+            </Text>
 
             <TouchableOpacity className="flex-row items-center justify-between py-3 border-b border-gray-700">
               <View className="flex-row items-center">
@@ -139,9 +201,15 @@ export default function Profile() {
                   size={20}
                   color="#9CA3AF"
                 />
-                <Text className="text-white ml-3">Notifications</Text>
+                <Text className="text-white ml-3">
+                  Notifications
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color="#9CA3AF"
+              />
             </TouchableOpacity>
 
             <TouchableOpacity className="flex-row items-center justify-between py-3 border-b border-gray-700">
@@ -151,20 +219,36 @@ export default function Profile() {
                   size={20}
                   color="#9CA3AF"
                 />
-                <Text className="text-white ml-3">Help & Support</Text>
+                <Text className="text-white ml-3">
+                  Help & Support
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color="#9CA3AF"
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
               className="flex-row items-center justify-between py-3"
-              onPress={logout}
+              onPress={handleSignOut}
             >
               <View className="flex-row items-center">
-                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-                <Text className="text-red-500 ml-3">Sign Out</Text>
+                <Ionicons
+                  name="log-out-outline"
+                  size={20}
+                  color="#EF4444"
+                />
+                <Text className="text-red-500 ml-3">
+                  Sign Out
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color="#EF4444"
+              />
             </TouchableOpacity>
           </View>
         </View>
