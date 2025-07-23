@@ -1,41 +1,48 @@
-// supabase/functions/create-post/index.ts
-import { serve } from "std/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 
-// Define the shape of the expected request body for type safety
-interface PostPayload {
-  image_url: string;
-  caption?: string;
-}
-
-// A type guard to validate the incoming data
-function isValidPayload(payload: any): payload is PostPayload {
-  return (
-    payload &&
-    typeof payload === "object" &&
-    "image_url" in payload &&
-    typeof payload.image_url === "string"
-  );
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  try {
-    // Create a Supabase admin client using the secret we set
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SERVICE_ROLE_KEY")!
-    );
+  console.log("Function invoked. Method:", req.method);
 
-    // Validate the JSON payload from the request
-    const payload: unknown = await req.json();
-    if (!isValidPayload(payload)) {
+  if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS preflight request.");
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    console.log("Parsing request body...");
+    const payload = await req.json();
+    console.log("Payload received:", payload);
+
+    if (!payload || typeof payload.image_url !== "string") {
       throw new Error(
-        "Invalid request body: 'image_url' (string) is required."
+        "Invalid payload: 'image_url' is required."
       );
     }
 
-    // Call our secure database function (RPC)
-    const { data: newPost, error } = await supabaseAdmin.rpc(
+    console.log("Creating Supabase client...");
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: {
+          headers: {
+            Authorization:
+              req.headers.get("Authorization")!,
+          },
+        },
+      }
+    );
+    console.log("Supabase client created.");
+
+    console.log("Calling RPC 'create_new_post'...");
+    const { data, error } = await supabaseClient.rpc(
       "create_new_post",
       {
         image_url: payload.image_url,
@@ -43,17 +50,33 @@ serve(async (req) => {
       }
     );
 
-    if (error) throw error;
+    if (error) {
+      console.error("RPC Error:", error);
+      throw error; // Re-throw the error to be caught by the outer block
+    }
 
-    // Return the data that the database function gave back
-    return new Response(JSON.stringify(newPost), {
-      headers: { "Content-Type": "application/json" },
+    console.log("RPC call successful. Data:", data);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error(
+      "Caught an error in the main try/catch block:",
+      error.message
+    );
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 500,
+      }
+    );
   }
 });

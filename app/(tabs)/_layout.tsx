@@ -178,7 +178,7 @@ export default function TabLayout(): React.ReactElement {
           options={{
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
-                name={focused ? "post" : "post-outline"}
+                name={focused ? "home" : "home-outline"}
                 focused={focused}
                 color={color}
                 size={size}

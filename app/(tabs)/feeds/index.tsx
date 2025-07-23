@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -6,103 +10,122 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
+  StyleSheet,
+  SafeAreaView,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
-import Post from "@/components/Post";
-import { useAppStore } from "@/stores/appStore";
-import { supabase } from "./../../../lib/supabase";
+import { supabase } from "@/lib/supabase";
+import Post from "@/components/Post"; // Make sure you have this component created
 
 export default function FeedsScreen() {
   const router = useRouter();
-  const { currentUser } = useAppStore();
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Function to fetch the initial list of posts
-  const fetchPosts = async () => {
-    if (!currentUser) return;
-    setIsLoading(true);
-    try {
-      // Fetch posts with user information from auth.users
-      const { data, error } =
-        await supabase.rpc("get_feed");
+  // Function to fetch posts from Supabase
+  const fetchPosts = useCallback(async () => {
+    // Note: We don't set isLoading to true here on purpose
+    // so the refresh doesn't show a full-screen loader.
+    const { data, error } = await supabase
+      .from("posts")
+      .select(`*, author:profiles!posts_user_id_fkey(*)`)
+      .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error: any) {
-      console.error("Error fetching posts:", error);
+    if (error) {
+      console.error("Feed Fetch Error:", error);
       Alert.alert("Error", "Could not fetch the feed.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      setPosts(data || []);
     }
-  };
+    setIsLoading(false); // Stop all loading indicators
+  }, []);
 
   useEffect(() => {
-    // 1. Fetch initial data when the screen loads
+    // 1. Initial fetch when the component loads
     fetchPosts();
 
-    // 2. Set up a real-time listener for NEW posts
+    // 2. Set up a real-time listener for any changes in the 'posts' table
     const channel = supabase
       .channel("public:posts")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "posts",
-        },
+        { event: "*", schema: "public", table: "posts" },
         (payload) => {
           console.log(
-            "Real-time: New post received!",
-            payload.new
+            "Real-time change received!",
+            payload
           );
-          // To get the author info for the new post, we need to fetch it
-          // A more advanced setup would use a database function for this
-          fetchPosts(); // For simplicity, we just re-fetch the whole feed
+          // The simplest and most reliable way to handle real-time updates
+          // is to just re-fetch the entire list.
+          fetchPosts();
         }
       )
       .subscribe();
 
-    // 3. Clean up the listener when the user navigates away
+    // 3. Clean up the listener when the component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser]); // Re-run if the user changes
+  }, [fetchPosts]);
 
-  if (isLoading) {
+  // Show a loading indicator only on the very first load
+  if (isLoading && posts.length === 0) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator />
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       {/* Custom Header */}
-      <View className="flex-row items-center justify-between p-4 pt-12">
-        <Text className="text-white text-2xl font-bold">
-          Feed
-        </Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Feed</Text>
         <Pressable onPress={() => router.push("/create")}>
           <Ionicons
             name="add-circle-outline"
-            size={28}
+            size={32}
             color="white"
           />
         </Pressable>
       </View>
 
+      {/* List of Posts */}
       <FlatList
         data={posts}
-        renderItem={({ item }) => <Post post={item} />}
+        renderItem={({ item }) => <Post post={item} />} // Ensure your Post component is ready
         keyExtractor={(item) => item.id}
-        onRefresh={fetchPosts}
+        onRefresh={fetchPosts} // Enables pull-to-refresh
         refreshing={isLoading}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 }
+
+// Using StyleSheet for clarity
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "black" },
+  center: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#262626",
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+});

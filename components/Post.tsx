@@ -1,73 +1,53 @@
-// src/components/Post.tsx
-
-import React, { useState, useEffect } from "react";
-import { View, Text, Image, Pressable, Alert } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  Pressable,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 
-type Profile = {
+type AuthorProfile = {
   id: string;
-  email: string;
-  full_name: string;
-  avatar_url: string;
+  username: string | null;
+  avatar_url: string | null;
 };
 
-type PostType = {
+type PostWithAuthor = {
   id: string;
-  caption: string;
+  caption: string | null;
   image_url: string;
   like_count: number;
-  comment_count: number;
   created_at: string;
-  user_id: string;
+  author: AuthorProfile | null;
+  // This new field will be provided by our backend
+  is_liked: boolean;
 };
 
-// Define the type for the component's props
 type PostProps = {
-  post: PostType;
+  post: PostWithAuthor;
 };
 
-export default function Post({ post: initialPost }: PostProps) {
-  // Use local state for immediate UI feedback (optimistic updates)
+export default function Post({
+  post: initialPost,
+}: PostProps) {
+  // --- SIMPLIFIED AND EFFICIENT STATE ---
+  // The initial state is now set directly from the props, no extra fetching needed.
   const [post, setPost] = useState(initialPost);
-  const [isLiked, setIsLiked] = useState(false); // We need to check initial like status
+  const [isLiked, setIsLiked] = useState(
+    initialPost.is_liked
+  );
   const [isLiking, setIsLiking] = useState(false);
 
-  // We need to know who the current user is
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUserAndLikeStatus = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-
-      // Check if the current user has already liked this post
-      if (user) {
-        const { data, error } = await supabase
-          .from("likes")
-          .select("*", { count: "exact" })
-          .eq("post_id", post.id)
-          .eq("user_id", user.id);
-
-        if (data && data.length > 0) {
-          setIsLiked(true);
-        }
-      }
-    };
-    fetchUserAndLikeStatus();
-  }, [post.id]);
-
+  // The handleToggleLike function remains mostly the same, as its logic was already good.
   const handleToggleLike = async () => {
-    if (!currentUserId)
-      return Alert.alert("You must be logged in to like a post.");
     if (isLiking) return;
-
     setIsLiking(true);
 
     // --- Optimistic UI Update ---
-    // Immediately update the UI before waiting for the server
     const wasLiked = isLiked;
     setIsLiked(!wasLiked);
     setPost((currentPost) => ({
@@ -78,71 +58,137 @@ export default function Post({ post: initialPost }: PostProps) {
     }));
 
     try {
-      // Call the Edge Function
-      const { data, error } = await supabase.functions.invoke("toggle-like", {
+      // Call the 'toggle-like' Edge Function we created earlier
+      await supabase.functions.invoke("toggle-like", {
         body: { post_id: post.id },
       });
-
-      if (error) {
-        // If the server fails, revert the optimistic update
-        setIsLiked(wasLiked);
-        setPost(initialPost); // Revert to original post data
-        throw error;
-      }
-
-      // The server response `data.liked` confirms the final state
-      console.log("Server confirmed like status:", data.liked);
-    } catch (error) {
+      // We don't need to do anything with the response because our UI is already updated.
+      // The real-time subscription in FeedsScreen will handle the final state.
+    } catch (error: any) {
       console.error("Error toggling like:", error);
+      // If the server fails, revert the optimistic update
+      setIsLiked(wasLiked);
+      setPost(initialPost);
       Alert.alert("Error", "Could not update like status.");
     } finally {
       setIsLiking(false);
     }
   };
 
+  // Helper to get a default avatar if the user's is missing
+  const getAvatarUrl = () => {
+    return (
+      post.author?.avatar_url ||
+      `https://placehold.co/32x32/1a1a1a/ffffff?text=${post.author?.username?.charAt(0) || "U"}`
+    );
+  };
+
   return (
-    <View className="p-4 mb-4 bg-gray-900">
+    <View style={styles.container}>
       {/* Post Header with Author Info */}
-      <View className="flex-row items-center mb-2">
+      <View style={styles.header}>
         <Image
-          source={{
-            uri: "https://via.placeholder.com/32", // Placeholder for now
-          }}
-          className="w-8 h-8 rounded-full"
+          source={{ uri: getAvatarUrl() }}
+          style={styles.avatar}
         />
-        <Text className="text-white font-bold ml-2">
-          {/* Placeholder for now */}
-          {post.user_id}
+        <Text style={styles.username}>
+          {post.author?.username || "Unknown User"}
         </Text>
       </View>
 
       {/* Post Image */}
       <Image
         source={{ uri: post.image_url }}
-        className="w-full aspect-square rounded-lg"
+        style={styles.postImage}
       />
 
       {/* Action Buttons (Like, Comment) */}
-      <View className="flex-row items-center mt-2">
-        <Pressable onPress={handleToggleLike} disabled={isLiking}>
+      <View style={styles.actionsContainer}>
+        <Pressable
+          onPress={handleToggleLike}
+          disabled={isLiking}
+          style={styles.actionButton}
+        >
           <Ionicons
             name={isLiked ? "heart" : "heart-outline"}
             size={28}
             color={isLiked ? "red" : "white"}
           />
         </Pressable>
-        {/* Add comment button here */}
+        <Pressable style={styles.actionButton}>
+          <Ionicons
+            name="chatbubble-outline"
+            size={26}
+            color="white"
+          />
+        </Pressable>
       </View>
 
       {/* Like Count and Caption */}
-      <Text className="text-white font-bold mt-1">{post.like_count} likes</Text>
-      <Text className="text-white mt-1">
-        <Text className="font-bold">
-          {/* Placeholder for now */}
-          {post.user_id}
-        </Text>{" "}
-        {post.caption}
-      </Text>
+      <View style={styles.footer}>
+        <Text style={styles.likesText}>
+          {post.like_count.toLocaleString()} likes
+        </Text>
+        <Text style={styles.captionText}>
+          <Text style={styles.usernameFooter}>
+            {post.author?.username || "Unknown"}
+          </Text>{" "}
+          {post.caption}
+        </Text>
+      </View>
     </View>
   );
 }
+
+// Using StyleSheet for a clean and organized component
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 20,
+    backgroundColor: "#121212", // A slightly different background for posts
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#333",
+  },
+  username: {
+    color: "white",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  postImage: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#222",
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  actionButton: {
+    marginRight: 12,
+  },
+  footer: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  likesText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  captionText: {
+    color: "white",
+    marginTop: 4,
+  },
+  usernameFooter: {
+    fontWeight: "bold",
+  },
+});
