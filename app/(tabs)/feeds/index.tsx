@@ -10,8 +10,6 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-// You will need to create/adapt this <Post> component
-// It will receive a post object from Supabase as a prop
 import Post from "@/components/Post";
 import { useAppStore } from "@/stores/appStore";
 import { supabase } from "./../../../lib/supabase";
@@ -28,7 +26,8 @@ export default function FeedsScreen() {
     setIsLoading(true);
     try {
       // Fetch posts with user information from auth.users
-      const { data, error } = await supabase.rpc("get_feed");
+      const { data, error } =
+        await supabase.rpc("get_feed");
 
       if (error) throw error;
       setPosts(data || []);
@@ -55,7 +54,10 @@ export default function FeedsScreen() {
           table: "posts",
         },
         (payload) => {
-          console.log("Real-time: New post received!", payload.new);
+          console.log(
+            "Real-time: New post received!",
+            payload.new
+          );
           // To get the author info for the new post, we need to fetch it
           // A more advanced setup would use a database function for this
           fetchPosts(); // For simplicity, we just re-fetch the whole feed
@@ -82,9 +84,15 @@ export default function FeedsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       {/* Custom Header */}
       <View className="flex-row items-center justify-between p-4 pt-12">
-        <Text className="text-white text-2xl font-bold">Feed</Text>
+        <Text className="text-white text-2xl font-bold">
+          Feed
+        </Text>
         <Pressable onPress={() => router.push("/create")}>
-          <Ionicons name="add-circle-outline" size={28} color="white" />
+          <Ionicons
+            name="add-circle-outline"
+            size={28}
+            color="white"
+          />
         </Pressable>
       </View>
 

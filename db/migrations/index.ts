@@ -6,11 +6,28 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
+      toVersion: 8,
+      steps: [
+        addColumns({
+          table: "users",
+          columns: [
+            {
+              name: "avatar_url",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+      ],
+    },
+    {
       toVersion: 7,
       steps: [
         addColumns({
           table: "users",
-          columns: [{ name: "goal_weight_kg", type: "number" }],
+          columns: [
+            { name: "goal_weight_kg", type: "number" },
+          ],
         }),
       ],
     },
@@ -20,8 +37,16 @@ export const migrations = schemaMigrations({
         addColumns({
           table: "users",
           columns: [
-            { name: "server_id", type: "string", isIndexed: true },
-            { name: "email", type: "string", isOptional: true },
+            {
+              name: "server_id",
+              type: "string",
+              isIndexed: true,
+            },
+            {
+              name: "email",
+              type: "string",
+              isOptional: true,
+            },
           ],
         }),
       ],

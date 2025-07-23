@@ -1,5 +1,3 @@
-// stores/appStore.ts
-
 import { create } from "zustand";
 import { User as WatermelonUser } from "@/db/models/User";
 import { User as SupabaseUser } from "@supabase/supabase-js";

@@ -9,6 +9,7 @@ interface UserCreationData {
   server_id: string;
   email?: string;
   name: string;
+  avatar_url?: string;
   gender: "male" | "female" | "other";
   dateOfBirth: string;
   heightCm: number;
@@ -87,6 +88,7 @@ export const createUser = async (
         user.serverId = profile.server_id;
         user.email = profile.email || "";
         user.name = profile.name;
+        user.avatarUrl = profile.avatar_url;
         user.gender = profile.gender;
         user.dateOfBirth = profile.dateOfBirth;
         user.heightCm = profile.heightCm;

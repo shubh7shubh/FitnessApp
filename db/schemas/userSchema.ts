@@ -11,6 +11,11 @@ export const userSchema = tableSchema({
   columns: [
     { name: "server_id", type: "string", isIndexed: true },
     { name: "email", type: "string", isOptional: true },
+    {
+      name: "avatar_url",
+      type: "string",
+      isOptional: true,
+    },
     { name: "name", type: "string" },
 
     // A column for the user's birth date. We'll store it as text like '1995-05-20'.
