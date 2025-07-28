@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { userSchema } from "@/db/schemas/userSchema";
 
 type AuthorProfile = {
   id: string;
@@ -34,15 +36,13 @@ type PostProps = {
 export default function Post({
   post: initialPost,
 }: PostProps) {
-  // --- SIMPLIFIED AND EFFICIENT STATE ---
-  // The initial state is now set directly from the props, no extra fetching needed.
   const [post, setPost] = useState(initialPost);
   const [isLiked, setIsLiked] = useState(
     initialPost.is_liked
   );
   const [isLiking, setIsLiking] = useState(false);
+  const router = useRouter();
 
-  // The handleToggleLike function remains mostly the same, as its logic was already good.
   const handleToggleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
@@ -83,6 +83,18 @@ export default function Post({
     );
   };
 
+  const postAuthorId = initialPost.author?.id;
+
+  const openComments = () => {
+    router.push({
+      pathname: "/(modals)/comments",
+      params: {
+        post_id: initialPost.id,
+        post_author_id: postAuthorId,
+      },
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* Post Header with Author Info */}
@@ -115,7 +127,10 @@ export default function Post({
             color={isLiked ? "red" : "white"}
           />
         </Pressable>
-        <Pressable style={styles.actionButton}>
+        <Pressable
+          onPress={openComments}
+          style={styles.actionButton}
+        >
           <Ionicons
             name="chatbubble-outline"
             size={26}

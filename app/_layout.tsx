@@ -1,14 +1,29 @@
 import "../global.css";
 import { useCallback, useEffect, useState } from "react";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack, useRouter } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import {
+  SplashScreen,
+  Stack,
+  useRouter,
+} from "expo-router";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Platform, View, ActivityIndicator, Text } from "react-native";
+import {
+  Platform,
+  View,
+  ActivityIndicator,
+  Text,
+} from "react-native";
 import * as NavigationBar from "expo-navigation-bar"; // Corrected import statement
 
 import { useAppStore } from "@/stores/appStore";
-import { findUserByServerId, getActiveUser } from "@/db/actions/userActions";
+import {
+  findUserByServerId,
+  getActiveUser,
+} from "@/db/actions/userActions";
 import { seedFoodDatabase } from "@/db/actions/foodActions";
 import DatabaseProvider from "@/providers/DatabaseProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -29,8 +44,10 @@ export default function RootLayout() {
     setOnboardingComplete,
   } = useAppStore();
 
-  const [appInitialized, setAppInitialized] = useState(false);
-  const [isNavigatorReady, setIsNavigatorReady] = useState(false);
+  const [appInitialized, setAppInitialized] =
+    useState(false);
+  const [isNavigatorReady, setIsNavigatorReady] =
+    useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     "JetBrainsMono-Medium": require("../assets/fonts/JetBrainsMono-Medium.ttf"),
@@ -41,41 +58,48 @@ export default function RootLayout() {
   const [isAppReady, setIsAppReady] = useState(false);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log(`Supabase auth event: ${event}`);
+    const { data: authListener } =
+      supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log(`Supabase auth event: ${event}`);
 
-        const supabaseUser = session?.user;
+          const supabaseUser = session?.user;
 
-        if (supabaseUser) {
-          const localUser = await findUserByServerId(supabaseUser.id);
+          if (supabaseUser) {
+            const localUser = await findUserByServerId(
+              supabaseUser.id
+            );
 
-          if (localUser) {
-            console.log("Local user found. Welcome back!");
-            setCurrentUser(localUser);
-            setOnboardingComplete(true);
-            router.replace("/(tabs)");
+            if (localUser) {
+              console.log(
+                "Local user found. Welcome back!"
+              );
+              setCurrentUser(localUser);
+              setOnboardingComplete(true);
+              router.replace("/(tabs)");
+            } else {
+              console.log(
+                "New user detected. Starting onboarding..."
+              );
+              useAppStore.setState({
+                supabaseUser: supabaseUser,
+              });
+
+              setCurrentUser(null);
+              setOnboardingComplete(false);
+              router.replace("/onboarding");
+            }
           } else {
-            console.log("New user detected. Starting onboarding...");
-            useAppStore.setState({
-              supabaseUser: supabaseUser,
-            });
-
+            console.log("User logged out.");
             setCurrentUser(null);
             setOnboardingComplete(false);
-            router.replace("/onboarding");
+            router.replace("/login" as any);
           }
-        } else {
-          console.log("User logged out.");
-          setCurrentUser(null);
-          setOnboardingComplete(false);
-          router.replace("/login" as any);
+          setIsAppReady(true);
+          setAppInitialized(true);
+          setLoading(false);
         }
-        setIsAppReady(true);
-        setAppInitialized(true);
-        setLoading(false);
-      }
-    );
+      );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -146,17 +170,18 @@ export default function RootLayout() {
             {/* Loading overlay - position it absolutely over everything */}
             {showLoading && (
               <View className="absolute inset-0 bg-black flex-1 justify-center items-center">
-                <ActivityIndicator size="large" color="#10B981" />
+                <ActivityIndicator
+                  size="large"
+                  color="#10B981"
+                />
                 <Text className="text-white mt-4 text-center px-4">
                   {fontError
                     ? "Font loading failed, continuing..."
                     : !fontsLoaded
                       ? "Loading fonts..."
-                      : !appInitialized
-                        ? "Initializing app..."
-                        : !isNavigatorReady
-                          ? "Setting up navigation..."
-                          : "Starting FitNext..."}
+                      : !isNavigatorReady
+                        ? "Setting up navigation..."
+                        : "Starting FitNext..."}
                 </Text>
                 {fontError && (
                   <Text className="text-red-400 mt-2 text-sm">
