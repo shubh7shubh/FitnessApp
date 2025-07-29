@@ -174,31 +174,14 @@ export default function TabLayout(): React.ReactElement {
           }}
         />
         <Tabs.Screen
-          name="feeds"
-          options={{
-            tabBarIcon: ({ focused, color, size }) => (
-              <TabIcon
-                name={
-                  focused ? "chart" : "chart-line-variant"
-                }
-                focused={focused}
-                color={color}
-                size={size}
-                IconComponent={MaterialCommunityIcons}
-              />
-            ),
-          }}
-        />
-
-        <Tabs.Screen
-          name="profile"
+          name="feeds/index"
           options={{
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={
                   focused
-                    ? "account-circle"
-                    : "account-circle-outline"
+                    ? "image-multiple"
+                    : "image-multiple-outline"
                 }
                 focused={focused}
                 color={color}

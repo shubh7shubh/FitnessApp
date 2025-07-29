@@ -97,7 +97,7 @@ export default function Index(): JSX.Element {
   };
 
   const handleProfilePress = (): void => {
-    router.push("/(tabs)/profile");
+    router.push("/(modals)/profile");
   };
 
   const quickActions = [
