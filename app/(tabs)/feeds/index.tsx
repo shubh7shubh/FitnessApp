@@ -16,30 +16,51 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import Post from "@/components/Post"; // Make sure you have this component created
+import Post from "@/components/Post";
+import { useAppStore } from "@/stores/appStore";
 
 export default function FeedsScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAppStore();
 
   // Function to fetch posts from Supabase
-  const fetchPosts = useCallback(async () => {
-    // Note: We don't set isLoading to true here on purpose
-    // so the refresh doesn't show a full-screen loader.
-    const { data, error } = await supabase
-      .from("posts")
-      .select(`*, author:profiles!posts_user_id_fkey(*)`)
-      .order("created_at", { ascending: false });
+  const fetchPosts = useCallback(
+    async (isRefreshing = false) => {
+      if (!isRefreshing) {
+        setIsLoading(true);
+      }
 
-    if (error) {
-      console.error("Feed Fetch Error:", error);
-      Alert.alert("Error", "Could not fetch the feed.");
-    } else {
-      setPosts(data || []);
-    }
-    setIsLoading(false); // Stop all loading indicators
-  }, []);
+      try {
+        // First, get the current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setPosts([]); // Clear posts if no user is logged in
+          throw new Error("User not found");
+        }
+
+        // Now, call the function with the user's ID
+        const { data, error } = await supabase.rpc(
+          "get_feed",
+          {
+            user_id_to_check: user.id,
+          }
+        );
+
+        if (error) throw error;
+
+        setPosts(data || []);
+      } catch (error) {
+        console.error("Feed Fetch Error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     // 1. Initial fetch when the component loads
@@ -67,7 +88,7 @@ export default function FeedsScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchPosts]);
+  }, [fetchPosts, currentUser]);
 
   // Show a loading indicator only on the very first load
   if (isLoading && posts.length === 0) {

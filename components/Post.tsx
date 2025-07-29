@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,15 +9,13 @@ import {
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { userSchema } from "@/db/schemas/userSchema";
 
+// Define your types in a central file like `types/index.ts`
 type AuthorProfile = {
   id: string;
   username: string | null;
   avatar_url: string | null;
 };
-
 type PostWithAuthor = {
   id: string;
   caption: string | null;
@@ -25,96 +23,92 @@ type PostWithAuthor = {
   like_count: number;
   created_at: string;
   author: AuthorProfile | null;
-  // This new field will be provided by our backend
   is_liked: boolean;
 };
-
-type PostProps = {
-  post: PostWithAuthor;
-};
+type PostProps = { post: PostWithAuthor };
 
 export default function Post({
   post: initialPost,
 }: PostProps) {
-  const [post, setPost] = useState(initialPost);
+  // This state is now derived from props and will be the single source of truth for the UI
   const [isLiked, setIsLiked] = useState(
     initialPost.is_liked
   );
+  const [likeCount, setLikeCount] = useState(
+    initialPost.like_count
+  );
   const [isLiking, setIsLiking] = useState(false);
-  const router = useRouter();
+
+  // This is the key: This effect ensures that if the parent data changes (e.g., after a refresh),
+  // the component's state updates to match the new reality from the database.
+  useEffect(() => {
+    setIsLiked(initialPost.is_liked);
+    setLikeCount(initialPost.like_count);
+  }, [initialPost.is_liked, initialPost.like_count]);
 
   const handleToggleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
 
-    // --- Optimistic UI Update ---
-    const wasLiked = isLiked;
-    setIsLiked(!wasLiked);
-    setPost((currentPost) => ({
-      ...currentPost,
-      like_count: wasLiked
-        ? currentPost.like_count - 1
-        : currentPost.like_count + 1,
-    }));
+    // Optimistic update for a snappy UI
+    const previousLikeState = isLiked;
+    const previousLikeCount = likeCount;
+
+    setIsLiked(!previousLikeState);
+    setLikeCount(
+      previousLikeState
+        ? previousLikeCount - 1
+        : previousLikeCount + 1
+    );
 
     try {
-      // Call the 'toggle-like' Edge Function we created earlier
-      await supabase.functions.invoke("toggle-like", {
-        body: { post_id: post.id },
-      });
-      // We don't need to do anything with the response because our UI is already updated.
-      // The real-time subscription in FeedsScreen will handle the final state.
+      // The backend handles the "one like per user" rule and returns the true state
+      const { data, error } =
+        await supabase.functions.invoke("toggle-like", {
+          body: { post_id: initialPost.id },
+        });
+
+      if (error) {
+        throw error; // Let the catch block handle UI reversal
+      }
     } catch (error: any) {
       console.error("Error toggling like:", error);
-      // If the server fails, revert the optimistic update
-      setIsLiked(wasLiked);
-      setPost(initialPost);
+      // If the server call fails for any reason, revert the UI to its previous state.
+      setIsLiked(previousLikeState);
+      setLikeCount(previousLikeCount);
       Alert.alert("Error", "Could not update like status.");
     } finally {
       setIsLiking(false);
     }
   };
 
-  // Helper to get a default avatar if the user's is missing
-  const getAvatarUrl = () => {
-    return (
-      post.author?.avatar_url ||
-      `https://placehold.co/32x32/1a1a1a/ffffff?text=${post.author?.username?.charAt(0) || "U"}`
-    );
-  };
+  const handleCommentPress = () =>
+    Alert.alert("Navigate to Comments");
 
-  const postAuthorId = initialPost.author?.id;
-
-  const openComments = () => {
-    router.push({
-      pathname: "/(modals)/comments",
-      params: {
-        post_id: initialPost.id,
-        post_author_id: postAuthorId,
-      },
-    });
-  };
+  const getAvatarUrl = () =>
+    initialPost.author?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${initialPost.author?.username?.charAt(0) || "U"}`;
 
   return (
     <View style={styles.container}>
-      {/* Post Header with Author Info */}
+      {/* Header */}
       <View style={styles.header}>
         <Image
           source={{ uri: getAvatarUrl() }}
           style={styles.avatar}
         />
         <Text style={styles.username}>
-          {post.author?.username || "Unknown User"}
+          {initialPost.author?.username || "Unknown"}
         </Text>
       </View>
 
-      {/* Post Image */}
+      {/* Image */}
       <Image
-        source={{ uri: post.image_url }}
+        source={{ uri: initialPost.image_url }}
         style={styles.postImage}
       />
 
-      {/* Action Buttons (Like, Comment) */}
+      {/* Actions */}
       <View style={styles.actionsContainer}>
         <Pressable
           onPress={handleToggleLike}
@@ -124,11 +118,11 @@ export default function Post({
           <Ionicons
             name={isLiked ? "heart" : "heart-outline"}
             size={28}
-            color={isLiked ? "red" : "white"}
+            color={isLiked ? "#FF3B30" : "white"}
           />
         </Pressable>
         <Pressable
-          onPress={openComments}
+          onPress={handleCommentPress}
           style={styles.actionButton}
         >
           <Ionicons
@@ -139,37 +133,39 @@ export default function Post({
         </Pressable>
       </View>
 
-      {/* Like Count and Caption */}
+      {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.likesText}>
-          {post.like_count.toLocaleString()} likes
+          {likeCount.toLocaleString()} likes
         </Text>
-        <Text style={styles.captionText}>
-          <Text style={styles.usernameFooter}>
-            {post.author?.username || "Unknown"}
-          </Text>{" "}
-          {post.caption}
-        </Text>
+        {initialPost.caption && (
+          <Text
+            style={styles.captionText}
+            numberOfLines={2}
+          >
+            <Text style={styles.usernameFooter}>
+              {initialPost.author?.username || "Unknown"}
+            </Text>{" "}
+            {initialPost.caption}
+          </Text>
+        )}
       </View>
     </View>
   );
 }
 
-// Using StyleSheet for a clean and organized component
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-    backgroundColor: "#121212", // A slightly different background for posts
-  },
+  container: { marginBottom: 20 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
     backgroundColor: "#333",
   },
   username: {
@@ -186,24 +182,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 12,
   },
-  actionButton: {
-    marginRight: 12,
-  },
-  footer: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  likesText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  captionText: {
-    color: "white",
-    marginTop: 4,
-  },
-  usernameFooter: {
-    fontWeight: "bold",
-  },
+  actionButton: { marginRight: 12 },
+  footer: { paddingHorizontal: 12, paddingTop: 8 },
+  likesText: { color: "white", fontWeight: "bold" },
+  captionText: { color: "white", marginTop: 4 },
+  usernameFooter: { fontWeight: "bold" },
 });
