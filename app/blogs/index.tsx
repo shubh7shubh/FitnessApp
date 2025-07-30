@@ -1,21 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
   useColorScheme,
   Pressable,
   StatusBar,
-  Image, // Make sure Image is imported
+  Image,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
-import articles from "@/lib/dummy-data/articles.json";
+// Importing articles outside component to avoid re-importing
+const articles: Article[] = require("@/lib/dummy-data/articles.json");
+
+// Import components
 import { FeaturedArticleCard } from "@/modules/blogs/components/FeaturedArticleCard";
 import { SmallArticleCard } from "@/modules/blogs/components/SmallArticleCard";
+import { Article } from "@/modules/blogs/types";
 
 const SectionHeader = ({
   title,
@@ -47,7 +52,14 @@ const SectionHeader = ({
 export default function BlogsScreen() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
-  const insets = useSafeAreaInsets(); // Still needed to get device-specific top inset
+  const insets = useSafeAreaInsets();
+
+  // Add status bar styles
+  React.useEffect(() => {
+    StatusBar.setBarStyle(
+      isDark ? "light-content" : "dark-content"
+    );
+  }, [isDark]);
 
   const [selectedCategory, setSelectedCategory] =
     useState("All");
@@ -180,12 +192,26 @@ export default function BlogsScreen() {
               title="Featured Article"
               subtitle="Editor's pick for this week"
             />
-            <FeaturedArticleCard
-              article={featuredArticle}
-              onPress={() =>
-                handleArticlePress(featuredArticle.id)
+            <Suspense
+              fallback={
+                <View
+                  style={{
+                    height: 320,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <ActivityIndicator size="large" />
+                </View>
               }
-            />
+            >
+              <FeaturedArticleCard
+                article={featuredArticle}
+                onPress={() =>
+                  handleArticlePress(featuredArticle.id)
+                }
+              />
+            </Suspense>
           </View>
         )}
 

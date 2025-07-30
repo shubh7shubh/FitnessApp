@@ -17,7 +17,8 @@ import {
   ActivityIndicator,
   Text,
 } from "react-native";
-import * as NavigationBar from "expo-navigation-bar"; // Corrected import statement
+import * as NavigationBar from "expo-navigation-bar";
+import { Link } from "expo-router";
 
 import { useAppStore } from "@/stores/appStore";
 import {
@@ -162,7 +163,9 @@ export default function RootLayout() {
               <Stack.Screen
                 name="blogs"
                 options={{
-                  contentStyle: { paddingTop: 0 }, // This removes the Stack's default top padding
+                  contentStyle: { paddingTop: 0 },
+                  animation: "fade", // Smoother transition
+                  presentation: "card",
                 }}
               />
             </Stack>

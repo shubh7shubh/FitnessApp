@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
-  FlatList,
   RefreshControl,
   Text,
   TouchableOpacity,
   View,
   ScrollView,
-  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, Link } from "expo-router";
 
 import { format } from "date-fns/format";
 import { Q } from "@nozbe/watermelondb";
@@ -27,13 +25,12 @@ import { Pressable } from "react-native";
 
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
 import ProductsSection from "@/modules/products/components/ProductsSection";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Index(): JSX.Element {
   const router = useRouter();
   const { colors } = useTheme();
-  const { refreshData, isLoading } = useHomeStore();
+  const { refreshData } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showQuickLogModal, setShowQuickLogModal] =
     useState(false);
@@ -42,52 +39,28 @@ export default function Index(): JSX.Element {
   const [debugTapCount, setDebugTapCount] = useState(0);
   const insets = useSafeAreaInsets();
 
-  const handleTitlePress = () => {
-    const newCount = debugTapCount + 1;
-    if (newCount >= 5) {
-      router.push("/(modals)/db-debug");
-      setDebugTapCount(0);
-    } else {
-      setDebugTapCount(newCount);
-
-      setTimeout(() => setDebugTapCount(0), 2000);
-    }
-  };
+  // fetch products once
 
   const { fetchProducts } = useProductsStore();
-
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // observe diary entries
   useEffect(() => {
-    if (!currentUser) {
-      return;
-    }
-
+    if (!currentUser) return;
     const todayString = format(new Date(), "yyyy-MM-dd");
-
-    const entriesObservable = database.collections
+    const subscription = database.collections
       .get<DiaryEntry>("diary_entries")
       .query(
         Q.where("date", todayString),
         Q.where("user_id", currentUser.id)
       )
-      .observe();
-
-    const subscription = entriesObservable.subscribe(
-      (entries) => {
-        console.log(
-          `[Home Screen Bridge] Detected ${entries.length} entries for today.`
-        );
-
-        updateTodayStats(entries, currentUser);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
+      .observe()
+      .subscribe((entries) =>
+        updateTodayStats(entries, currentUser)
+      );
+    return () => subscription.unsubscribe();
   }, [currentUser, updateTodayStats]);
 
   const onRefresh = async (): Promise<void> => {
@@ -96,10 +69,20 @@ export default function Index(): JSX.Element {
     setRefreshing(false);
   };
 
-  const handleProfilePress = (): void => {
+  const handleProfilePress = () =>
     router.push("/(modals)/profile");
+  const handleTitlePress = () => {
+    const newCount = debugTapCount + 1;
+    if (newCount >= 5) {
+      router.push("/(modals)/db-debug");
+      setDebugTapCount(0);
+    } else {
+      setDebugTapCount(newCount);
+      setTimeout(() => setDebugTapCount(0), 2000);
+    }
   };
 
+  // quick actions array
   const quickActions = [
     {
       icon: "restaurant",
@@ -134,7 +117,7 @@ export default function Index(): JSX.Element {
     >
       {/* HEADER */}
       <View
-        className="flex-row justify-between items-center px-6 py-4 pt-3"
+        className="flex-row justify-between items-center px-6 py-4"
         style={{
           paddingTop: insets.top + 10,
           backgroundColor: colors.surface,
@@ -145,7 +128,7 @@ export default function Index(): JSX.Element {
         <View>
           <Pressable onPress={handleTitlePress}>
             <Text
-              className="text-2xl font-jetbrains-mono font-bold"
+              className="text-2xl font-bold"
               style={{ color: colors.primary }}
             >
               FitNext
@@ -159,14 +142,13 @@ export default function Index(): JSX.Element {
           </Text>
         </View>
 
-        {/* Profile Picture */}
         <TouchableOpacity
           onPress={handleProfilePress}
           className="w-12 h-12 rounded-full overflow-hidden"
           style={{
             backgroundColor: colors.surface,
-            borderWidth: 1,
             borderColor: colors.primary,
+            borderWidth: 1,
           }}
         >
           <View
@@ -193,10 +175,7 @@ export default function Index(): JSX.Element {
           />
         }
       >
-        {/* HERO SECTION */}
         <HeroSection />
-
-        {/* PLANS BANNER */}
         <PlansBanner />
 
         {/* QUICK ACTIONS */}
@@ -207,46 +186,74 @@ export default function Index(): JSX.Element {
           >
             Quick Actions
           </Text>
-
           <View className="flex-row justify-between">
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={action.onPress}
-                className="items-center p-4 rounded-2xl flex-1 mx-1"
-                style={{ backgroundColor: colors.surface }}
-              >
-                <View
-                  className="w-12 h-12 rounded-full items-center justify-center mb-2"
+            {quickActions.map((action, index) =>
+              action.label === "Blogs" ? (
+                <Link key={index} href="/blogs" asChild>
+                  <TouchableOpacity
+                    className="items-center p-4 rounded-2xl flex-1 mx-1"
+                    style={{
+                      backgroundColor: colors.surface,
+                    }}
+                  >
+                    <View
+                      className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                      style={{
+                        backgroundColor:
+                          action.color + "20",
+                      }}
+                    >
+                      <Ionicons
+                        name={action.icon as any}
+                        size={24}
+                        color={action.color}
+                      />
+                    </View>
+                    <Text
+                      className="text-sm font-medium text-center"
+                      style={{ color: colors.text.primary }}
+                    >
+                      Blogs
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              ) : (
+                <TouchableOpacity
+                  key={index}
+                  onPress={action.onPress}
+                  className="items-center p-4 rounded-2xl flex-1 mx-1"
                   style={{
-                    backgroundColor: action.color + "20",
+                    backgroundColor: colors.surface,
                   }}
                 >
-                  <Ionicons
-                    name={action.icon as any}
-                    size={24}
-                    color={action.color}
-                  />
-                </View>
-                <Text
-                  className="text-sm font-medium text-center"
-                  style={{ color: colors.text.primary }}
-                >
-                  {action.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <View
+                    className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                    style={{
+                      backgroundColor: action.color + "20",
+                    }}
+                  >
+                    <Ionicons
+                      name={action.icon as any}
+                      size={24}
+                      color={action.color}
+                    />
+                  </View>
+                  <Text
+                    className="text-sm font-medium text-center"
+                    style={{ color: colors.text.primary }}
+                  >
+                    {action.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            )}
           </View>
         </View>
 
-        {/* --- 3. ADD THE PRODUCTS SECTION HERE --- */}
         <ProductsSection />
-
-        {/* Add some bottom padding for tab bar */}
         <View className="pb-20" />
       </ScrollView>
 
-      {/* Quick Log Modal */}
       <QuickLogModal
         visible={showQuickLogModal}
         onClose={() => setShowQuickLogModal(false)}

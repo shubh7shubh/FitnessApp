@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,9 @@ import {
   Pressable,
   ActivityIndicator,
   useColorScheme,
+  Platform,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { Article } from "../types";
@@ -16,211 +18,485 @@ interface FeaturedArticleCardProps {
   onPress: () => void;
 }
 
-export const FeaturedArticleCard = ({
-  article,
-  onPress,
-}: FeaturedArticleCardProps) => {
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const isDark = useColorScheme() === "dark";
+export const FeaturedArticleCard = React.memo(
+  ({ article, onPress }: FeaturedArticleCardProps) => {
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
+    const [cachedImageUri, setCachedImageUri] = useState<
+      string | null
+    >(null);
+    const isDark = useColorScheme() === "dark";
 
-  const handleImageLoad = () => {
-    setImageLoading(false);
-  };
+    useEffect(() => {
+      let mounted = true;
 
-  const handleImageError = () => {
-    setImageLoading(false);
-    setImageError(true);
-  };
+      const loadCachedImage = async () => {
+        try {
+          // Skip caching if no image URL
+          if (!article.imageUrl) {
+            if (mounted) {
+              setImageError(true);
+              setImageLoading(false);
+            }
+            return;
+          }
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      Recovery: "#10B981",
-      Strength: "#F59E0B",
-      Hydration: "#06B6D4",
-      Mindset: "#8B5CF6",
-      Supplement: "#EF4444",
+          const uri = await getCachedImage(
+            article.imageUrl
+          );
+          if (mounted) {
+            setCachedImageUri(uri);
+          }
+        } catch (error) {
+          console.warn(
+            "Failed to load cached image:",
+            error
+          );
+          if (mounted) {
+            setCachedImageUri(article.imageUrl);
+          }
+        }
+      };
+
+      loadCachedImage();
+      return () => {
+        mounted = false;
+      };
+    }, [article.imageUrl]);
+
+    const getCachedImage = async (
+      imageUrl: string
+    ): Promise<string> => {
+      if (Platform.OS === "web") return imageUrl;
+
+      try {
+        // Create a safe filename from the URL by replacing special characters
+        const filename = imageUrl
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .slice(-50); // Take last 50 chars to avoid too long filenames
+        const cacheDir = `${FileSystem.cacheDirectory}images/`;
+        const cacheFilePath = `${cacheDir}${filename}.jpg`;
+
+        // Check if directory exists, create if not
+        const dirInfo =
+          await FileSystem.getInfoAsync(cacheDir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(cacheDir, {
+            intermediates: true,
+          });
+        }
+
+        // Check if file exists in cache
+        const fileInfo =
+          await FileSystem.getInfoAsync(cacheFilePath);
+        if (fileInfo.exists) {
+          return `file://${cacheFilePath}`;
+        }
+
+        // Download and cache the image
+        const downloadResult =
+          await FileSystem.downloadAsync(
+            imageUrl,
+            cacheFilePath
+          );
+        if (downloadResult.status === 200) {
+          return `file://${cacheFilePath}`;
+        } else {
+          throw new Error(
+            `Download failed with status: ${downloadResult.status}`
+          );
+        }
+      } catch (error) {
+        console.warn("Image caching error:", error);
+        throw error; // Re-throw to handle in loadCachedImage
+      }
     };
-    return colors[category as keyof typeof colors] || "#10B981";
-  };
 
-  if (imageError) {
-    // Fallback design when image fails to load
+    const handleImageLoad = () => {
+      setImageLoading(false);
+      setImageError(false);
+    };
+
+    const handleImageError = (error?: any) => {
+      console.warn("Image load error:", error);
+      setImageLoading(false);
+      setImageError(true);
+    };
+
+    const getCategoryColor = (category: string): string => {
+      const colors: Record<string, string> = {
+        Recovery: "#10B981",
+        Strength: "#F59E0B",
+        Hydration: "#06B6D4",
+        Mindset: "#8B5CF6",
+        Supplement: "#EF4444",
+      };
+      return colors[category] || "#10B981";
+    };
+
+    // Fallback design when image fails to load or doesn't exist
+    if (imageError || !article.imageUrl) {
+      return (
+        <Pressable
+          onPress={onPress}
+          style={{
+            width: "100%",
+            height: 320,
+            borderRadius: 24,
+            overflow: "hidden",
+            marginBottom: 32,
+            backgroundColor: isDark ? "#000000" : "#F3F4F6",
+          }}
+          android_ripple={{ color: "rgba(0,0,0,0.1)" }}
+        >
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 24,
+            }}
+          >
+            {/* Fallback Icon */}
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+                backgroundColor: isDark
+                  ? "#1F2937"
+                  : "#E5E7EB",
+              }}
+            >
+              <Feather
+                name="image"
+                size={32}
+                color={getCategoryColor(article.category)}
+              />
+            </View>
+
+            {/* Content */}
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+                marginBottom: 12,
+                color: getCategoryColor(article.category),
+              }}
+            >
+              {article.category}
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "bold",
+                textAlign: "center",
+                lineHeight: 28,
+                marginBottom: 16,
+                color: isDark ? "#FFFFFF" : "#111827",
+              }}
+              numberOfLines={3}
+            >
+              {article.title}
+            </Text>
+
+            {/* Meta info */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Feather
+                name="book-open"
+                size={14}
+                color={isDark ? "#9CA3AF" : "#6B7280"}
+              />
+              <Text
+                style={{
+                  fontSize: 14,
+                  marginLeft: 8,
+                  color: isDark ? "#9CA3AF" : "#6B7280",
+                }}
+              >
+                {article.readTime} min read
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  marginHorizontal: 8,
+                  color: isDark ? "#6B7280" : "#9CA3AF",
+                }}
+              >
+                •
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: isDark ? "#9CA3AF" : "#6B7280",
+                }}
+              >
+                Featured
+              </Text>
+            </View>
+          </View>
+        </Pressable>
+      );
+    }
+
     return (
       <Pressable
         onPress={onPress}
-        className={`w-full h-80 rounded-3xl overflow-hidden mb-8 active:opacity-90 ${
-          isDark ? "bg-black" : "bg-gray-100"
-        }`}
+        style={{
+          width: "100%",
+          height: 320,
+          borderRadius: 24,
+          overflow: "hidden",
+          marginBottom: 32,
+          elevation: 8, // Android shadow
+          shadowColor: "#000", // iOS shadow
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        }}
+        android_ripple={{ color: "rgba(255,255,255,0.1)" }}
       >
-        <View className="flex-1 justify-center items-center p-6">
-          {/* Fallback Icon */}
-          <View
-            className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${
-              isDark ? "bg-gray-900" : "bg-gray-200"
-            }`}
-          >
-            <Feather
-              name="image"
-              size={32}
-              color={getCategoryColor(article.category)}
-            />
-          </View>
-
-          {/* Content */}
-          <Text
-            className="text-xs font-bold uppercase tracking-widest mb-3"
-            style={{ color: getCategoryColor(article.category) }}
-          >
-            {article.category}
-          </Text>
-          <Text
-            className={`text-2xl font-bold text-center leading-tight mb-4 ${
-              isDark ? "text-white" : "text-gray-900"
-            }`}
-          >
-            {article.title}
-          </Text>
-
-          {/* Meta info */}
-          <View className="flex-row items-center">
-            <Feather
-              name="book-open"
-              size={14}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
-            <Text
-              className={`text-sm ml-2 ${
-                isDark ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              {article.readTime} min read
-            </Text>
-            <Text
-              className={`text-sm mx-2 ${
-                isDark ? "text-gray-500" : "text-gray-400"
-              }`}
-            >
-              •
-            </Text>
-            <Text
-              className={`text-sm ${
-                isDark ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Featured
-            </Text>
-          </View>
-        </View>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className="w-full h-80 rounded-3xl overflow-hidden mb-8 active:opacity-90 shadow-lg"
-    >
-      <ImageBackground
-        source={{ uri: article.imageUrl }}
-        className="flex-1 justify-end"
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-      >
-        {/* Loading Indicator */}
-        {imageLoading && (
-          <View className="absolute inset-0 items-center justify-center bg-gray-200 dark:bg-black">
-            <ActivityIndicator
-              size="large"
-              color={getCategoryColor(article.category)}
-            />
-            <Text
-              className={`mt-2 text-sm ${
-                isDark ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Loading image...
-            </Text>
-          </View>
-        )}
-
-        {/* Gradient Overlay */}
-        <LinearGradient
-          colors={[
-            "transparent",
-            "rgba(0,0,0,0.3)",
-            "rgba(0,0,0,0.8)",
-            "rgba(0,0,0,0.95)",
-          ]}
-          locations={[0, 0.4, 0.8, 1]}
-          className="absolute inset-0"
-        />
-
-        {/* Featured Badge */}
-        <View className="absolute top-6 right-6">
-          <View className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-            <Text className="text-white text-xs font-bold uppercase tracking-wider">
-              Featured
-            </Text>
-          </View>
-        </View>
-
-        {/* Content */}
-        <View className="p-6 pb-8">
-          {/* Category Badge */}
-          <View className="flex-row items-center mb-3">
+        <ImageBackground
+          source={{
+            uri: cachedImageUri || article.imageUrl,
+          }}
+          style={{ flex: 1, justifyContent: "flex-end" }}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          resizeMode="cover"
+        >
+          {/* Loading Indicator */}
+          {imageLoading && (
             <View
-              className="px-3 py-1 rounded-full mr-3"
               style={{
-                backgroundColor: getCategoryColor(article.category) + "20",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark
+                  ? "#000000"
+                  : "#E5E7EB",
+              }}
+            >
+              <ActivityIndicator
+                size="large"
+                color={getCategoryColor(article.category)}
+              />
+              <Text
+                style={{
+                  marginTop: 8,
+                  fontSize: 14,
+                  color: isDark ? "#9CA3AF" : "#6B7280",
+                }}
+              >
+                Loading image...
+              </Text>
+            </View>
+          )}
+
+          {/* Gradient Overlay */}
+          <LinearGradient
+            colors={[
+              "transparent",
+              "rgba(0,0,0,0.3)",
+              "rgba(0,0,0,0.8)",
+              "rgba(0,0,0,0.95)",
+            ]}
+            locations={[0, 0.4, 0.8, 1]}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+
+          {/* Featured Badge */}
+          <View
+            style={{
+              position: "absolute",
+              top: 24,
+              right: 24,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "rgba(255,255,255,0.2)",
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 20,
               }}
             >
               <Text
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: getCategoryColor(article.category) }}
+                style={{
+                  color: "white",
+                  fontSize: 12,
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
               >
-                {article.category}
+                Featured
               </Text>
             </View>
-            <View className="w-2 h-2 rounded-full bg-white/60" />
-            <Text className="text-white/80 text-xs ml-2 uppercase tracking-wide">
-              Editor's Pick
-            </Text>
           </View>
 
-          {/* Title */}
-          <Text className="text-3xl font-bold text-white leading-tight mb-4">
-            {article.title}
-          </Text>
+          {/* Content */}
+          <View style={{ padding: 24, paddingBottom: 32 }}>
+            {/* Category Badge */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
+                  borderRadius: 20,
+                  marginRight: 12,
+                  backgroundColor:
+                    getCategoryColor(article.category) +
+                    "33", // 20% opacity
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    letterSpacing: 1.5,
+                    color: getCategoryColor(
+                      article.category
+                    ),
+                  }}
+                >
+                  {article.category}
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                }}
+              />
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.8)",
+                  fontSize: 12,
+                  marginLeft: 8,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
+              >
+                Editor's Pick
+              </Text>
+            </View>
 
-          {/* Headline/Summary */}
-          {article.headline && (
+            {/* Title */}
             <Text
-              className="text-white/90 text-base leading-relaxed mb-4"
+              style={{
+                fontSize: 28,
+                fontWeight: "bold",
+                color: "white",
+                lineHeight: 32,
+                marginBottom: 16,
+              }}
               numberOfLines={2}
             >
-              {article.headline}
+              {article.title}
             </Text>
-          )}
 
-          {/* Meta Info */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <Feather name="book-open" size={16} color="white" />
-              <Text className="text-white text-sm ml-2 font-medium">
-                {article.readTime} min read
+            {/* Headline/Summary */}
+            {article.headline && (
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.9)",
+                  fontSize: 16,
+                  lineHeight: 22,
+                  marginBottom: 16,
+                }}
+                numberOfLines={2}
+              >
+                {article.headline}
               </Text>
-            </View>
+            )}
 
-            <View className="flex-row items-center">
-              <Text className="text-white/80 text-sm mr-2">
-                By {article.author}
-              </Text>
-              <Feather name="arrow-right" size={16} color="white" />
+            {/* Meta Info */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Feather
+                  name="book-open"
+                  size={16}
+                  color="white"
+                />
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 14,
+                    marginLeft: 8,
+                    fontWeight: "500",
+                  }}
+                >
+                  {article.readTime} min read
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "rgba(255,255,255,0.8)",
+                    fontSize: 14,
+                    marginRight: 8,
+                  }}
+                >
+                  By {article.author}
+                </Text>
+                <Feather
+                  name="arrow-right"
+                  size={16}
+                  color="white"
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </ImageBackground>
-    </Pressable>
-  );
-};
+        </ImageBackground>
+      </Pressable>
+    );
+  }
+);
