@@ -6,6 +6,8 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 interface AppState {
   currentUser: WatermelonUser | null;
   supabaseUser: SupabaseUser | null;
+  supabaseProfile: any | null;
+  setSupabaseProfile: (profile: any | null) => void;
   isAuthenticated: boolean;
   isLoading: boolean; // To show a loading screen on app start
   onboardingComplete: boolean;
@@ -29,6 +31,9 @@ export const useAppStore = create<AppState & AppActions>(
     onboardingComplete: false,
     currentUser: null,
     supabaseUser: null,
+    supabaseProfile: null,
+    setSupabaseProfile: (profile) =>
+      set({ supabaseProfile: profile }),
     isAuthenticated: false,
     isLoading: true, // App starts in a loading state by default
     selectedGoal: null, // No goal selected initially

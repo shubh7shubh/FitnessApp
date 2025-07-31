@@ -77,8 +77,7 @@ export default function FeedsScreen() {
             "Real-time change received!",
             payload
           );
-          // The simplest and most reliable way to handle real-time updates
-          // is to just re-fetch the entire list.
+
           fetchPosts();
         }
       )

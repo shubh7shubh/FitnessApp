@@ -26,6 +26,7 @@ import { Pressable } from "react-native";
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
 import ProductsSection from "@/modules/products/components/ProductsSection";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image } from "react-native";
 
 export default function Index(): JSX.Element {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function Index(): JSX.Element {
   const { todayStats, updateTodayStats } = useHomeStore();
   const [debugTapCount, setDebugTapCount] = useState(0);
   const insets = useSafeAreaInsets();
+  const { supabaseProfile } = useAppStore();
 
   // fetch products once
 
@@ -120,7 +122,7 @@ export default function Index(): JSX.Element {
         className="flex-row justify-between items-center px-6 py-4"
         style={{
           paddingTop: insets.top + 10,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.background,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
         }}
@@ -146,21 +148,28 @@ export default function Index(): JSX.Element {
           onPress={handleProfilePress}
           className="w-12 h-12 rounded-full overflow-hidden"
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: colors.surfaceElevated,
             borderColor: colors.primary,
             borderWidth: 1,
           }}
         >
-          <View
-            className="w-full h-full items-center justify-center"
-            style={{
-              backgroundColor: colors.primary + "20",
-            }}
-          >
-            <Text style={{ color: colors.primary }}>
-              {currentUser?.name?.charAt(0) || "U"}
-            </Text>
-          </View>
+          {supabaseProfile?.avatar_url ? (
+            <Image
+              source={{ uri: supabaseProfile.avatar_url }}
+              className="w-full h-full"
+            />
+          ) : (
+            <View
+              className="w-full h-full items-center justify-center"
+              style={{
+                backgroundColor: colors.primary + "20",
+              }}
+            >
+              <Text style={{ color: colors.primary }}>
+                {currentUser?.name?.charAt(0) || "U"}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
