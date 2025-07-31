@@ -36,7 +36,7 @@ export default function Index(): JSX.Element {
   const [showQuickLogModal, setShowQuickLogModal] =
     useState(false);
   const { currentUser } = useAppStore();
-  const { todayStats, updateTodayStats } = useHomeStore();
+  const { todayStats } = useHomeStore();
   const [debugTapCount, setDebugTapCount] = useState(0);
   const insets = useSafeAreaInsets();
   const { supabaseProfile } = useAppStore();
@@ -47,23 +47,6 @@ export default function Index(): JSX.Element {
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  // observe diary entries
-  useEffect(() => {
-    if (!currentUser) return;
-    const todayString = format(new Date(), "yyyy-MM-dd");
-    const subscription = database.collections
-      .get<DiaryEntry>("diary_entries")
-      .query(
-        Q.where("date", todayString),
-        Q.where("user_id", currentUser.id)
-      )
-      .observe()
-      .subscribe((entries) =>
-        updateTodayStats(entries, currentUser)
-      );
-    return () => subscription.unsubscribe();
-  }, [currentUser, updateTodayStats]);
 
   const onRefresh = async (): Promise<void> => {
     setRefreshing(true);

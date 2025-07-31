@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs } from "expo-router";
 import {
   MaterialCommunityIcons,
@@ -11,12 +11,39 @@ import {
 } from "react-native";
 import { COLORS } from "@/constants/theme";
 import { QuickLogModal } from "@/modules/nutrition";
+import { useAppStore } from "@/stores/appStore";
+import { useHomeStore } from "@/modules/home/store/homeStore";
+import { database } from "@/db/index";
+import { DiaryEntry } from "@/db/models/DiaryEntry";
+import { Q } from "@nozbe/watermelondb";
+import { format } from "date-fns";
 
 export default function TabLayout(): React.ReactElement {
   const [showQuickLogModal, setShowQuickLogModal] =
     useState(false);
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
+  const { currentUser } = useAppStore();
+  const { updateTodayStats } = useHomeStore();
+
+  // Global observer for diary entries to keep home store updated
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const todayString = format(new Date(), "yyyy-MM-dd");
+    const subscription = database.collections
+      .get<DiaryEntry>("diary_entries")
+      .query(
+        Q.where("date", todayString),
+        Q.where("user_id", currentUser.id)
+      )
+      .observe()
+      .subscribe((entries) => {
+        updateTodayStats(entries, currentUser);
+      });
+    
+    return () => subscription.unsubscribe();
+  }, [currentUser, updateTodayStats]);
 
   const CustomPlusButton = () => (
     <View className="items-center justify-center -mt-6 px-1">

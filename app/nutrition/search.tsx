@@ -19,9 +19,10 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import { format } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import {
   MealType,
@@ -63,13 +64,18 @@ const MEAL_TYPES: MealTypeInfo[] = [
 export const FoodSearchScreen: React.FC = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  
+  // Get route parameters
+  const params = useLocalSearchParams();
+  const routeMealType = params.mealType as MealType | undefined;
+  const routeDate = params.date as string | undefined;
 
   // Remove dependency on router parameters to avoid navigation context issues
   const [searchQuery, setSearchQuery] = useState("");
   const [showMealDropdown, setShowMealDropdown] =
     useState(false);
   const [selectedMealType, setSelectedMealType] =
-    useState<MealType>("breakfast");
+    useState<MealType>(routeMealType || "breakfast");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -111,11 +117,18 @@ export const FoodSearchScreen: React.FC = () => {
     addFoodToDiary,
   } = useNutrition();
 
-  // Get current date (removed dependency on route params)
+  // Get current date with consistent formatting, or use the date from route params
   const dateToLog = useMemo(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0]; // YYYY-MM-DD format
-  }, []);
+    if (routeDate) {
+      // Validate the route date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(routeDate)) {
+        return routeDate;
+      }
+    }
+    // Fallback to today's date
+    return format(new Date(), "yyyy-MM-dd");
+  }, [routeDate]);
 
   // Find the selected meal info
   const selectedMeal = useMemo(
