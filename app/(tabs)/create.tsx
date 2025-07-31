@@ -13,6 +13,7 @@ import {
   ScrollView,
   useColorScheme,
   SafeAreaView,
+  Animated,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -30,6 +31,8 @@ export default function CreateScreen() {
   const [selectedImage, setSelectedImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastOpacity] = useState(new Animated.Value(0));
 
   const pickImage = async () => {
     const result =
@@ -44,6 +47,27 @@ export default function CreateScreen() {
     if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0]);
     }
+  };
+
+  const showSuccessToast = () => {
+    setShowToast(true);
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setTimeout(() => {
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowToast(false);
+        // Navigate to feeds screen
+        router.push("/(tabs)/feeds");
+      });
+    }, 1000);
   };
 
   const handleShare = async () => {
@@ -97,9 +121,10 @@ export default function CreateScreen() {
 
       if (functionError) throw functionError;
 
-      // 6. If successful, show an alert and go back to the previous screen
-      Alert.alert("Success!", "Your post has been shared.");
-      router.back();
+      // 6. If successful, show toast and navigate to feeds
+      setCaption(""); // Clear the caption
+      setSelectedImage(null); // Clear the selected image
+      showSuccessToast();
     } catch (error: any) {
       console.error("Share Post Error:", error);
       Alert.alert(
@@ -194,6 +219,24 @@ export default function CreateScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        
+        {/* Toast Message */}
+        {showToast && (
+          <Animated.View
+            style={[
+              styles.toast,
+              {
+                backgroundColor: colors.primary,
+                opacity: toastOpacity,
+              },
+            ]}
+          >
+            <Ionicons name="checkmark-circle" size={20} color={colors.text.inverse} />
+            <Text style={[styles.toastText, { color: colors.text.inverse }]}>
+              Post created successfully!
+            </Text>
+          </Animated.View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -259,5 +302,32 @@ const styles = StyleSheet.create({
   buttonText: {
     fontWeight: "600",
     fontSize: 16,
+  },
+  toast: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4ADE80',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  toastText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

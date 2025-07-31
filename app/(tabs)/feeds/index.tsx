@@ -26,7 +26,7 @@ export default function FeedsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
-  
+
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAppStore();
@@ -60,7 +60,6 @@ export default function FeedsScreen() {
 
         setPosts(data || []);
       } catch (error) {
-        console.error("Feed Fetch Error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -98,25 +97,55 @@ export default function FeedsScreen() {
   // Show a loading indicator only on the very first load
   if (isLoading && posts.length === 0) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar 
-        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <StatusBar
+        barStyle={
+          colorScheme === "dark"
+            ? "light-content"
+            : "dark-content"
+        }
         backgroundColor={colors.background}
         translucent={false}
       />
       <SafeAreaView style={styles.safeArea}>
         <Stack.Screen options={{ headerShown: false }} />
-        
+
         {/* Custom Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Feed</Text>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: colors.border },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: colors.text.primary },
+            ]}
+          >
+            Feed
+          </Text>
           <Pressable onPress={() => router.push("/create")}>
             <Ionicons
               name="add-circle-outline"
@@ -133,9 +162,19 @@ export default function FeedsScreen() {
           keyExtractor={(item) => item.id}
           onRefresh={fetchPosts}
           refreshing={isLoading}
-          contentContainerStyle={[styles.listContent, { backgroundColor: colors.background }]}
+          contentContainerStyle={[
+            styles.listContent,
+            { backgroundColor: colors.background },
+          ]}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+          ItemSeparatorComponent={() => (
+            <View
+              style={[
+                styles.separator,
+                { backgroundColor: colors.border },
+              ]}
+            />
+          )}
         />
       </SafeAreaView>
     </View>
@@ -144,7 +183,7 @@ export default function FeedsScreen() {
 
 // Using StyleSheet for clarity
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
   },
   safeArea: {
