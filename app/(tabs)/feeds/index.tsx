@@ -167,14 +167,6 @@ export default function FeedsScreen() {
             { backgroundColor: colors.background },
           ]}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => (
-            <View
-              style={[
-                styles.separator,
-                { backgroundColor: colors.border },
-              ]}
-            />
-          )}
         />
       </SafeAreaView>
     </View>
@@ -206,10 +198,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   listContent: {
-    paddingTop: 8,
-    paddingBottom: 40,
-  },
-  separator: {
-    height: 8,
+    paddingTop: 4,
+    paddingBottom: 100,
   },
 });

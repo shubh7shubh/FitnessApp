@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Pressable,
   Text,
+  StatusBar,
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import { Stack, useRouter } from "expo-router";
@@ -41,6 +42,7 @@ const NextButton = ({
   onPress,
   disabled,
 }: NextButtonProps) => {
+  const { colors, isDark } = useTheme();
   const CIRCLE_LENGTH = 2 * Math.PI * 28;
 
   const animatedProps = useAnimatedProps(() => ({
@@ -52,6 +54,14 @@ const NextButton = ({
     ),
   }));
 
+  const buttonGradient = disabled
+    ? isDark
+      ? (["#374151", "#4B5563"] as const)
+      : (["#E5E7EB", "#D1D5DB"] as const)
+    : isDark
+      ? (["#10B981", "#34D399"] as const)
+      : (["#34D399", "#10B981"] as const);
+
   return (
     <Pressable
       onPress={onPress}
@@ -59,52 +69,60 @@ const NextButton = ({
       style={{
         width: 72,
         height: 72,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: disabled ? "#9CA3AF" : "#68D391",
         borderRadius: 36,
         opacity: disabled ? 0.5 : 1,
         shadowColor: disabled
           ? "rgba(0,0,0,0.1)"
-          : "rgba(104, 211, 145, 0.4)",
+          : colors.primary,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: disabled ? 0.1 : 0.4,
         shadowRadius: 16,
         elevation: disabled ? 4 : 12,
       }}
     >
-      <Svg
-        width="72"
-        height="72"
-        style={{ position: "absolute" }}
+      <LinearGradient
+        colors={buttonGradient}
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
       >
-        <Circle
-          cx="36"
-          cy="36"
-          r="28"
-          stroke="rgba(255,255,255,0.3)"
-          strokeWidth="3"
-          fill="transparent"
+        <Svg
+          width="72"
+          height="72"
+          style={{ position: "absolute" }}
+        >
+          <Circle
+            cx="36"
+            cy="36"
+            r="28"
+            stroke="rgba(255,255,255,0.3)"
+            strokeWidth="3"
+            fill="transparent"
+          />
+          <AnimatedCircle
+            cx="36"
+            cy="36"
+            r="28"
+            stroke="#FFFFFF"
+            strokeWidth="3"
+            fill="transparent"
+            strokeDasharray={CIRCLE_LENGTH}
+            animatedProps={animatedProps}
+            strokeLinecap="round"
+            transform="rotate(-90 36 36)"
+          />
+        </Svg>
+        <Feather
+          name="arrow-right"
+          size={24}
+          color="#FFFFFF"
+          style={{ marginLeft: 2 }}
         />
-        <AnimatedCircle
-          cx="36"
-          cy="36"
-          r="28"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          fill="transparent"
-          strokeDasharray={CIRCLE_LENGTH}
-          animatedProps={animatedProps}
-          strokeLinecap="round"
-          transform="rotate(-90 36 36)"
-        />
-      </Svg>
-      <Feather
-        name="arrow-right"
-        size={24}
-        color="#FFFFFF"
-        style={{ marginLeft: 2 }}
-      />
+      </LinearGradient>
     </Pressable>
   );
 };
@@ -112,7 +130,7 @@ const NextButton = ({
 export default function OnboardingFlow() {
   const pagerRef = useRef<PagerView>(null);
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const [currentPage, setCurrentPage] = useState(0);
 
   const {
@@ -142,10 +160,10 @@ export default function OnboardingFlow() {
       | "very_active",
   });
 
-  // Theme configuration to match GenderAgeScreen
+  // Gradient theme configuration to match GenderAgeScreen
   const backgroundColors = isDark
-    ? (["#0F172A", "#1E293B"] as const)
-    : (["#FFFFFF", "#FDF2F8"] as const); // White to light pink
+    ? (["#0F0F23", "#1A1A2E", "#16213E"] as const) // Dark purple gradient
+    : (["#FFFFFF", "#FDF2F8", "#FCE7F3"] as const); // Light white to light pink gradient
 
   const handleGenderSelect = useCallback(
     (gender: "male" | "female") => {
@@ -320,85 +338,102 @@ export default function OnboardingFlow() {
   };
 
   return (
-    <LinearGradient
-      colors={backgroundColors}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <Stack.Screen options={{ headerShown: false }} />
+    <View style={{ flex: 1 }}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
+      <LinearGradient
+        colors={backgroundColors}
+        style={{ flex: 1 }}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <Stack.Screen options={{ headerShown: false }} />
 
-        {/* Page Content */}
-        <PagerView
-          ref={pagerRef}
-          style={{ flex: 1 }}
-          initialPage={0}
-          scrollEnabled={false}
-          onPageSelected={(e) =>
-            setCurrentPage(e.nativeEvent.position)
-          }
-        >
-          {onboardingSteps.map((step, index) => (
-            <View key={index} style={{ flex: 1 }}>
-              {step}
-            </View>
-          ))}
-        </PagerView>
+          {/* Page Content */}
+          <PagerView
+            ref={pagerRef}
+            style={{ flex: 1 }}
+            initialPage={0}
+            scrollEnabled={false}
+            onPageSelected={(e) =>
+              setCurrentPage(e.nativeEvent.position)
+            }
+          >
+            {onboardingSteps.map((step, index) => (
+              <View key={index} style={{ flex: 1 }}>
+                {step}
+              </View>
+            ))}
+          </PagerView>
 
-        {/* --- REFINED NAVIGATION BUTTONS --- */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 32,
-            paddingVertical: 24,
-          }}
-        >
-          {currentPage > 0 ? (
-            <Pressable
-              onPress={goToPreviousPage}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                borderRadius: 30,
-                backgroundColor: isDark
-                  ? "#374151"
-                  : "rgba(255,255,255,0.8)",
-                borderWidth: 2,
-                borderColor: isDark
-                  ? "#4B5563"
-                  : "rgba(59, 130, 246, 0.3)",
-                shadowColor: "rgba(0,0,0,0.1)",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
-            >
-              <Text
+          {/* --- REFINED NAVIGATION BUTTONS --- */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 32,
+              paddingVertical: 24,
+            }}
+          >
+            {currentPage > 0 ? (
+              <Pressable
+                onPress={goToPreviousPage}
                 style={{
-                  color: isDark ? "#D1D5DB" : "#374151",
-                  fontSize: 16,
-                  fontWeight: "600",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 30,
+                  borderWidth: 2,
+                  borderColor: colors.border,
+                  shadowColor: "rgba(0,0,0,0.1)",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 4,
+                  overflow: "hidden",
                 }}
               >
-                Back
-              </Text>
-            </Pressable>
-          ) : (
-            // Spacer
-            <View />
-          )}
+                <LinearGradient
+                  colors={
+                    isDark
+                      ? (["#374151", "#4B5563"] as const)
+                      : (["#FFFFFF", "#F8FAFC"] as const)
+                  }
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    fontSize: 16,
+                    fontWeight: "600",
+                  }}
+                >
+                  Back
+                </Text>
+              </Pressable>
+            ) : (
+              // Spacer
+              <View />
+            )}
 
-          <NextButton
-            progress={progress}
-            onPress={goToNextPage}
-            disabled={!canProceed()}
-          />
-        </View>
-      </SafeAreaView>
-    </LinearGradient>
+            <NextButton
+              progress={progress}
+              onPress={goToNextPage}
+              disabled={!canProceed()}
+            />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 }

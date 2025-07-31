@@ -28,7 +28,7 @@ export default function CommentsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
-  
+
   const { post_id, post_author_id } = useLocalSearchParams<{
     post_id: string;
     post_author_id: string;
@@ -87,19 +87,29 @@ export default function CommentsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen 
-        options={{ 
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <Stack.Screen
+        options={{
           title: "Comments",
-          headerStyle: { backgroundColor: colors.background },
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
           headerTintColor: colors.text.primary,
           headerTitleStyle: { color: colors.text.primary },
-        }} 
+        }}
       />
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+          />
         </View>
       ) : (
         <FlatList
@@ -109,17 +119,28 @@ export default function CommentsScreen() {
           renderItem={({ item }) => (
             <View style={styles.commentItem}>
               <Image
-                source={{ 
-                  uri: item.author?.avatar_url || 
-                    `https://ui-avatars.com/api/?name=${item.author?.username?.charAt(0) || "U"}` 
+                source={{
+                  uri:
+                    item.author?.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${item.author?.username?.charAt(0) || "U"}`,
                 }}
                 style={styles.commentAvatar}
               />
               <View style={styles.commentContent}>
-                <Text style={[styles.commentUsername, { color: colors.text.primary }]}>
+                <Text
+                  style={[
+                    styles.commentUsername,
+                    { color: colors.text.primary },
+                  ]}
+                >
                   {item.author?.username || "Unknown"}
                 </Text>
-                <Text style={[styles.commentText, { color: colors.text.secondary }]}>
+                <Text
+                  style={[
+                    styles.commentText,
+                    { color: colors.text.secondary },
+                  ]}
+                >
                   {item.content}
                 </Text>
               </View>
@@ -127,7 +148,12 @@ export default function CommentsScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.text.muted }]}>
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: colors.text.muted },
+                ]}
+              >
                 No comments yet. Be the first!
               </Text>
             </View>
@@ -136,13 +162,27 @@ export default function CommentsScreen() {
       )}
 
       {/* Comment Input Box */}
-      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
         <TextInput
           value={newComment}
           onChangeText={setNewComment}
           placeholder="Add a comment..."
           placeholderTextColor={colors.text.muted}
-          style={[styles.textInput, { backgroundColor: colors.surface, color: colors.text.primary }]}
+          style={[
+            styles.textInput,
+            {
+              backgroundColor: colors.surface,
+              color: colors.text.primary,
+            },
+          ]}
           multiline
         />
         <Pressable
@@ -150,16 +190,24 @@ export default function CommentsScreen() {
           disabled={isPosting || !newComment.trim()}
           style={[
             styles.postButton,
-            { 
-              backgroundColor: newComment.trim() ? colors.primary : colors.surface,
+            {
+              backgroundColor: newComment.trim()
+                ? colors.primary
+                : colors.surface,
               opacity: isPosting ? 0.6 : 1,
-            }
+            },
           ]}
         >
-          <Text style={[
-            styles.postButtonText, 
-            { color: newComment.trim() ? colors.text.inverse : colors.text.muted }
-          ]}>
+          <Text
+            style={[
+              styles.postButtonText,
+              {
+                color: newComment.trim()
+                  ? colors.text.inverse
+                  : colors.text.muted,
+              },
+            ]}
+          >
             {isPosting ? "Posting..." : "Post"}
           </Text>
         </Pressable>
@@ -174,16 +222,16 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   commentsList: {
     flex: 1,
   },
   commentItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   commentAvatar: {
     width: 36,
@@ -196,7 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   commentUsername: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 15,
     marginBottom: 2,
   },
@@ -206,17 +254,17 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 60,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
@@ -228,19 +276,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     maxHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   postButton: {
     marginLeft: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minWidth: 60,
   },
   postButtonText: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 16,
   },
 });

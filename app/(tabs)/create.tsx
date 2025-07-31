@@ -26,7 +26,7 @@ export default function CreateScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
-  
+
   const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -137,31 +137,42 @@ export default function CreateScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: colors.background },
+      ]}
+    >
       <KeyboardAvoidingView
         behavior={
           Platform.OS === "ios" ? "padding" : "height"
         }
         style={styles.container}
       >
-        <Stack.Screen 
-          options={{ 
+        <Stack.Screen
+          options={{
             title: "Create Post",
-            headerStyle: { backgroundColor: colors.background },
+            headerStyle: {
+              backgroundColor: colors.background,
+            },
             headerTintColor: colors.text.primary,
-            headerTitleStyle: { color: colors.text.primary },
-          }} 
+            headerTitleStyle: {
+              color: colors.text.primary,
+            },
+          }}
         />
         <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity
             onPress={pickImage}
             style={[
-              styles.imagePicker, 
-              { 
+              styles.imagePicker,
+              {
                 backgroundColor: colors.surface,
-                borderColor: selectedImage ? 'transparent' : colors.border,
+                borderColor: selectedImage
+                  ? "transparent"
+                  : colors.border,
                 borderWidth: selectedImage ? 0 : 2,
-              }
+              },
             ]}
           >
             {selectedImage ? (
@@ -176,7 +187,12 @@ export default function CreateScreen() {
                   size={50}
                   color={colors.text.muted}
                 />
-                <Text style={[styles.imagePlaceholderText, { color: colors.text.muted }]}>
+                <Text
+                  style={[
+                    styles.imagePlaceholderText,
+                    { color: colors.text.muted },
+                  ]}
+                >
                   Tap to select an image
                 </Text>
               </View>
@@ -189,12 +205,12 @@ export default function CreateScreen() {
             placeholder="Write a caption..."
             placeholderTextColor={colors.text.muted}
             style={[
-              styles.input, 
-              { 
-                backgroundColor: colors.surface, 
+              styles.input,
+              {
+                backgroundColor: colors.surface,
                 color: colors.text.primary,
                 borderColor: colors.border,
-              }
+              },
             ]}
             multiline
           />
@@ -204,22 +220,31 @@ export default function CreateScreen() {
               onPress={handleShare}
               style={[
                 styles.button,
-                { 
+                {
                   backgroundColor: colors.primary,
                   opacity: isSharing ? 0.6 : 1,
-                }
+                },
               ]}
               disabled={isSharing}
             >
               {isSharing ? (
-                <ActivityIndicator color={colors.text.inverse} />
+                <ActivityIndicator
+                  color={colors.text.inverse}
+                />
               ) : (
-                <Text style={[styles.buttonText, { color: colors.text.inverse }]}>Share</Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: colors.text.inverse },
+                  ]}
+                >
+                  Share
+                </Text>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
-        
+
         {/* Toast Message */}
         {showToast && (
           <Animated.View
@@ -231,8 +256,17 @@ export default function CreateScreen() {
               },
             ]}
           >
-            <Ionicons name="checkmark-circle" size={20} color={colors.text.inverse} />
-            <Text style={[styles.toastText, { color: colors.text.inverse }]}>
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color={colors.text.inverse}
+            />
+            <Text
+              style={[
+                styles.toastText,
+                { color: colors.text.inverse },
+              ]}
+            >
               Post created successfully!
             </Text>
           </Animated.View>
@@ -244,14 +278,14 @@ export default function CreateScreen() {
 
 // Using StyleSheet for clarity
 const styles = StyleSheet.create({
-  safeArea: { 
+  safeArea: {
     flex: 1,
   },
-  container: { 
+  container: {
     flex: 1,
   },
-  content: { 
-    flexGrow: 1, 
+  content: {
+    flexGrow: 1,
     padding: 20,
     paddingBottom: 120, // Extra padding to account for tab bar
   },
@@ -263,7 +297,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     overflow: "hidden",
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   imagePlaceholder: {
     justifyContent: "center",
@@ -273,10 +307,10 @@ const styles = StyleSheet.create({
   imagePlaceholderText: {
     marginTop: 12,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  image: { 
-    width: "100%", 
+  image: {
+    width: "100%",
     height: "100%",
   },
   input: {
@@ -297,25 +331,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     minHeight: 50,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   buttonText: {
     fontWeight: "600",
     fontSize: 16,
   },
   toast: {
-    position: 'absolute',
+    position: "absolute",
     top: 100,
     left: 20,
     right: 20,
-    backgroundColor: '#4ADE80',
+    backgroundColor: "#4ADE80",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -327,7 +361,7 @@ const styles = StyleSheet.create({
   },
   toastText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
 });

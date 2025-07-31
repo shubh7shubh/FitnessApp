@@ -374,8 +374,8 @@ export const TargetWeightScreen = ({
     <LinearGradient
       colors={
         isDark
-          ? ["#111827", "#1F2937"]
-          : ["#F3FDE8", "#EBFBEF"]
+          ? ["#0F0F23", "#1A1A2E", "#16213E"]
+          : ["#FFFFFF", "#FDEDF3", "#F9E7F7"]
       }
       className="flex-1"
     >
@@ -465,18 +465,7 @@ export const TargetWeightScreen = ({
         </View>
 
         {/* Bottom Message */}
-        <View className="flex-row items-center bg-white dark:bg-gray-800 p-5 rounded-2xl m-5 mt-10 shadow-sm">
-          <Text className="text-[32px] mr-4">👍</Text>
-          <View className="flex-1">
-            <Text className="text-base font-bold text-gray-800 dark:text-gray-50 mb-1">
-              Select Target Weight
-            </Text>
-            <Text className="text-sm text-gray-600 dark:text-gray-400 leading-5">
-              Choose a target that makes you feel strong,
-              healthy and confident.
-            </Text>
-          </View>
-        </View>
+        <View className="flex-row items-center p-5 rounded-2xl m-5 mt-10 "></View>
       </View>
     </LinearGradient>
   );

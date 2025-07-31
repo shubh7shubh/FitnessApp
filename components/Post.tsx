@@ -8,6 +8,13 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -36,7 +43,11 @@ export default function Post({
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
-  
+
+  // Animation values
+  const heartScale = useSharedValue(1);
+  const heartOpacity = useSharedValue(1);
+
   // This state is now derived from props and will be the single source of truth for the UI
   const [isLiked, setIsLiked] = useState(
     initialPost.is_liked
@@ -68,6 +79,14 @@ export default function Post({
         : previousLikeCount + 1
     );
 
+    // Heart animation when liking
+    if (!previousLikeState) {
+      heartScale.value = withSequence(
+        withSpring(1.3, { damping: 10, stiffness: 200 }),
+        withSpring(1, { damping: 10, stiffness: 200 })
+      );
+    }
+
     try {
       // The backend handles the "one like per user" rule and returns the true state
       const { data, error } =
@@ -92,10 +111,10 @@ export default function Post({
   const handleCommentPress = () => {
     router.push({
       pathname: "/(modals)/comments",
-      params: { 
+      params: {
         post_id: initialPost.id,
-        post_author_id: initialPost.author?.id || ""
-      }
+        post_author_id: initialPost.author?.id || "",
+      },
     });
   };
 
@@ -103,19 +122,43 @@ export default function Post({
     if (initialPost.author?.avatar_url) {
       return initialPost.author.avatar_url;
     }
-    const firstLetter = initialPost.author?.username?.charAt(0) || "U";
+    const firstLetter =
+      initialPost.author?.username?.charAt(0) || "U";
     return `https://ui-avatars.com/api/?name=${firstLetter}&background=4ADE80&color=fff&size=128`;
   };
 
+  // Animated style for heart icon
+  const animatedHeartStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: heartScale.value }],
+      opacity: heartOpacity.value,
+    };
+  });
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.surface },
+      ]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <Image
           source={{ uri: getAvatarUrl() }}
           style={styles.avatar}
         />
-        <Text style={[styles.username, { color: colors.text.primary }]}>
+        <Text
+          style={[
+            styles.username,
+            { color: colors.text.primary },
+          ]}
+        >
           {initialPost.author?.username || "Unknown"}
         </Text>
       </View>
@@ -127,18 +170,37 @@ export default function Post({
       />
 
       {/* Actions */}
-      <View style={[styles.actionsContainer, { backgroundColor: colors.background }]}>
-        <Pressable
-          onPress={handleToggleLike}
-          disabled={isLiking}
-          style={styles.actionButton}
-        >
-          <Ionicons
-            name={isLiked ? "heart" : "heart-outline"}
-            size={28}
-            color={isLiked ? "#FF3B30" : colors.text.primary}
-          />
-        </Pressable>
+      <View
+        style={[
+          styles.actionsContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <View style={styles.likeContainer}>
+          <Pressable
+            onPress={handleToggleLike}
+            disabled={isLiking}
+            style={styles.actionButton}
+          >
+            <Animated.View style={animatedHeartStyle}>
+              <Ionicons
+                name={isLiked ? "heart" : "heart-outline"}
+                size={28}
+                color={
+                  isLiked ? "#FF3B30" : colors.text.primary
+                }
+              />
+            </Animated.View>
+          </Pressable>
+          <Text
+            style={[
+              styles.likesCount,
+              { color: colors.text.primary },
+            ]}
+          >
+            {likeCount.toLocaleString()}
+          </Text>
+        </View>
         <Pressable
           onPress={handleCommentPress}
           style={styles.actionButton}
@@ -152,16 +214,26 @@ export default function Post({
       </View>
 
       {/* Footer */}
-      <View style={[styles.footer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.likesText, { color: colors.text.primary }]}>
-          {likeCount.toLocaleString()} likes
-        </Text>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         {initialPost.caption && (
           <Text
-            style={[styles.captionText, { color: colors.text.primary }]}
+            style={[
+              styles.captionText,
+              { color: colors.text.primary },
+            ]}
             numberOfLines={2}
           >
-            <Text style={[styles.usernameFooter, { color: colors.text.primary }]}>
+            <Text
+              style={[
+                styles.usernameFooter,
+                { color: colors.text.primary },
+              ]}
+            >
               {initialPost.author?.username || "Unknown"}
             </Text>{" "}
             {initialPost.caption}
@@ -173,11 +245,11 @@ export default function Post({
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    marginBottom: 8,
+  container: {
+    marginBottom: 4,
     borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -189,19 +261,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#333",
   },
   username: {
     fontWeight: "600",
-    marginLeft: 14,
-    fontSize: 17,
+    marginLeft: 12,
+    fontSize: 16,
   },
   postImage: {
     width: "100%",
@@ -211,28 +283,32 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  actionButton: { 
+  likeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 20,
-    padding: 6,
   },
-  footer: { 
-    paddingHorizontal: 20, 
-    paddingTop: 10,
-    paddingBottom: 20,
+  actionButton: {
+    padding: 4,
   },
-  likesText: { 
+  likesCount: {
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
+    marginLeft: 8,
   },
-  captionText: { 
-    marginTop: 8,
-    fontSize: 16,
-    lineHeight: 22,
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  usernameFooter: { 
+  captionText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  usernameFooter: {
     fontWeight: "600",
   },
 });

@@ -154,15 +154,19 @@ export const WeightChart = ({ entries, period = "all" }: WeightChartProps) => {
   // Create a key that changes when data changes to force chart re-render
   const chartKey = `chart-${entries?.length || 0}-${entries?.map((e) => e.weightKg).join("-") || "empty"}`;
 
+  // Dynamic colors based on theme
+  const chartColor = colorScheme === "dark" ? colors.primary : "#3B82F6"; // Light blue for light mode
+  const fillStartColor = colorScheme === "dark" ? colors.primary : "#3B82F6";
+
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
       <LineChart
         key={chartKey}
         data={chartData}
         height={220}
-        color={colors.primary}
+        color={chartColor}
         thickness={3}
-        startFillColor={colors.primary}
+        startFillColor={fillStartColor}
         endFillColor={colors.surface}
         startOpacity={0.4}
         endOpacity={0.1}
@@ -175,7 +179,7 @@ export const WeightChart = ({ entries, period = "all" }: WeightChartProps) => {
         noOfSections={4}
         spacing={chartConfig.spacing}
         initialSpacing={20}
-        dataPointsColor={colors.primary}
+        dataPointsColor={chartColor}
         curved
       />
     </View>

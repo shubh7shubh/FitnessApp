@@ -154,7 +154,6 @@ const ProgressScreen = () => {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: StatusBar.currentHeight || 0, // Only add status bar height
       }}
     >
       <StatusBar
@@ -175,10 +174,8 @@ const ProgressScreen = () => {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: 20,
-          paddingVertical: -10,
-          paddingTop: -10,
-          marginTop: -8,
-          marginBottom: 8,
+          paddingVertical: 8,
+          paddingTop: 16,
           backgroundColor: colors.background,
         }}
       >
@@ -232,7 +229,7 @@ const ProgressScreen = () => {
             />
             <Text
               style={{
-                color: colors.primary,
+                color: colorScheme === "dark" ? colors.primary : "#2563EB",
                 fontSize: 16,
                 fontWeight: "600",
               }}
@@ -259,7 +256,7 @@ const ProgressScreen = () => {
             />
             <Text
               style={{
-                color: colors.primary,
+                color: colorScheme === "dark" ? colors.primary : "#2563EB",
                 fontSize: 16,
                 fontWeight: "600",
               }}
@@ -410,7 +407,7 @@ const ProgressScreen = () => {
         </View>
 
         {/* Bottom padding for tab bar */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Graph Period Selection Modal */}

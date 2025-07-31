@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   Dimensions,
   Image,
-  useColorScheme,
+  StatusBar,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -33,98 +33,86 @@ export const GenderAgeScreen = ({
   onGenderSelect,
   onAgeChange,
 }: GenderAgeScreenProps) => {
-  const isDark = useColorScheme() === "dark";
+  const { colors, isDark } = useTheme();
 
   const maleScale = useSharedValue(1);
   const femaleScale = useSharedValue(1);
-  const ageOpacity = useSharedValue(gender ? 1 : 0);
-  const ageTranslateY = useSharedValue(gender ? 0 : 20);
-
   const ageAnimation = useSharedValue(gender ? 1 : 0);
 
   // Generate age array (18 to 80)
   const ages = Array.from({ length: 63 }, (_, i) => i + 18);
-  const ageScrollRef = useRef<ScrollView>(null);
 
-  // Theme configuration
+  // Theme configuration using gradient color schemes
   const theme = {
     background: isDark
-      ? (["#0F172A", "#1E293B"] as const)
-      : (["#FDF2F8", "#FCE7F3"] as const), // Light pink gradient for light mode
-    cardBackground: isDark ? "#1E293B" : "#FFFFFF",
-    maleCardBackground: "#DBEAFE", // Light blue for male
-    femaleCardBackground: "#FCE7F3", // Light pink for female
-    selectedCardBackground: isDark ? "#10B981" : "#3B82F6",
-    textPrimary: isDark ? "#FFFFFF" : "#1F2937",
-    textSecondary: isDark ? "#94A3B8" : "#6B7280",
-    textAccent: isDark ? "#10B981" : "#3B82F6",
-    border: isDark ? "#334155" : "#E5E7EB",
-    selectedBorder: isDark ? "#10B981" : "#3B82F6",
+      ? (["#0F0F23", "#1A1A2E", "#16213E"] as const) // Dark purple gradient
+      : (["#FFFFFF", "#FDF2F8", "#FCE7F3"] as const), // Light white to light pink gradient
+    cardBackground: colors.surface,
+    maleCardBackground: isDark
+      ? (["#1E3A8A", "#3B82F6"] as const) // Dark blue gradient
+      : (["#60A5FA", "#3B82F6"] as const), // Light blue gradient
+    femaleCardBackground: isDark
+      ? (["#BE185D", "#EC4899"] as const) // Dark pink gradient
+      : (["#F472B6", "#EC4899"] as const), // Light pink gradient
+    selectedCardBackground: isDark
+      ? (["#10B981", "#34D399"] as const) // Dark green gradient
+      : (["#34D399", "#10B981"] as const), // Light green gradient
+    textPrimary: colors.text.primary,
+    textSecondary: colors.text.secondary,
+    textAccent: colors.primary,
+    border: colors.border,
+    selectedBorder: colors.primary,
     shadow: isDark
-      ? "rgba(16, 185, 129, 0.4)"
-      : "rgba(59, 130, 246, 0.4)",
+      ? "rgba(74, 222, 128, 0.4)"
+      : "rgba(59, 130, 246, 0.3)",
+    ageCardBackground: isDark
+      ? (["#1F2937", "#374151"] as const) // Dark gray gradient
+      : (["#F8FAFC", "#E2E8F0"] as const), // Light gray gradient
   };
 
-  // Scroll to selected age when age prop changes
-  useEffect(() => {
-    if (ageScrollRef.current && age) {
-      const ageIndex = age - 18;
-      const scrollPosition = ageIndex * 88; // 80 (card width) + 8 (margins)
-      ageScrollRef.current.scrollTo({
-        x: scrollPosition,
-        animated: true,
-      });
-    }
-  }, [age]);
+  const handleGenderSelect = useCallback(
+    (selectedGender: "male" | "female") => {
+      // Call parent's function to update state immediately
+      onGenderSelect(selectedGender);
 
-  const handleGenderSelect = (
-    selectedGender: "male" | "female"
-  ) => {
-    // Call parent's function to update state
-    onGenderSelect(selectedGender);
+      // Ultra-fast, minimal animation feedback
+      if (selectedGender === "male") {
+        maleScale.value = withSpring(1.01, {
+          damping: 12,
+          stiffness: 200,
+          mass: 0.3,
+        });
+        femaleScale.value = withSpring(1, {
+          damping: 12,
+          stiffness: 200,
+          mass: 0.3,
+        });
+      } else {
+        femaleScale.value = withSpring(1.01, {
+          damping: 12,
+          stiffness: 200,
+          mass: 0.3,
+        });
+        maleScale.value = withSpring(1, {
+          damping: 12,
+          stiffness: 200,
+          mass: 0.3,
+        });
+      }
 
-    // Immediate response with minimal animation
-    if (selectedGender === "male") {
-      maleScale.value = withSpring(1.02, {
-        damping: 15,
-        stiffness: 300,
-        mass: 0.5,
-      });
-      femaleScale.value = withSpring(1, {
-        damping: 15,
-        stiffness: 300,
-        mass: 0.5,
-      });
-    } else {
-      femaleScale.value = withSpring(1.02, {
-        damping: 25,
-        stiffness: 500,
-        mass: 0.3,
-      });
-      maleScale.value = withSpring(1, {
-        damping: 25,
-        stiffness: 500,
-        mass: 0.3,
-      });
-    }
+      // Instant age section reveal
+      ageAnimation.value = withTiming(1, { duration: 150 });
+    },
+    [onGenderSelect, maleScale, femaleScale, ageAnimation]
+  );
 
-    // Immediate age section reveal
-    ageAnimation.value = withTiming(1, { duration: 150 });
-  };
-
-  const handleAgeSelect = (selectedAge: number) => {
-    // Call parent's function to update state
-    onAgeChange(selectedAge);
-  };
-
-  const handleAgeScroll = (event: any) => {
-    const newAge =
-      Math.round(event.nativeEvent.contentOffset.x / 88) +
-      18; // Adjusted for card width + margin
-    if (newAge !== age && newAge >= 18 && newAge <= 80) {
-      onAgeChange(newAge);
-    }
-  };
+  const handleAgeSelect = useCallback(
+    (selectedAge: number) => {
+      // Call parent's function to update state immediately
+      onAgeChange(selectedAge);
+    },
+    [onAgeChange]
+  );
 
   const maleAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: maleScale.value }],
@@ -147,266 +135,269 @@ export const GenderAgeScreen = ({
     ],
   }));
 
-  const GenderCard = ({
-    genderType,
-    imageSource,
-    label,
-    isSelected,
-    onPress,
-    animatedStyle,
-  }: {
-    genderType: string;
-    imageSource: any;
-    label: string;
-    isSelected: boolean;
-    onPress: () => void;
-    animatedStyle: any;
-  }) => {
-    const cardSize = width * 0.35;
-    const cardBackground =
-      genderType === "male"
-        ? theme.maleCardBackground
-        : theme.femaleCardBackground;
+  const GenderCard = React.memo(
+    ({
+      genderType,
+      imageSource,
+      label,
+      isSelected,
+      onPress,
+      animatedStyle,
+    }: {
+      genderType: string;
+      imageSource: any;
+      label: string;
+      isSelected: boolean;
+      onPress: () => void;
+      animatedStyle: any;
+    }) => {
+      const cardSize = width * 0.32;
+      const cardGradient = isSelected
+        ? theme.selectedCardBackground
+        : genderType === "male"
+          ? theme.maleCardBackground
+          : theme.femaleCardBackground;
 
-    return (
-      // 1. Use a standard Pressable from 'react-native'
-      <Pressable onPressIn={() => onPress()}>
-        {/* 2. Your Animated.View goes inside and gets the style */}
-        <Animated.View
-          style={[
-            animatedStyle,
-            {
-              alignItems: "center",
-              marginHorizontal: 20,
-            },
-          ]}
+      return (
+        <Pressable
+          onPress={onPress}
+          style={{ marginHorizontal: 16 }}
         >
-          {/* All your existing beautiful styling for the avatar and text goes here */}
-
-          {/* Perfect Circle Avatar */}
-          <View
-            style={{
-              width: cardSize,
-              height: cardSize,
-              borderRadius: cardSize / 2,
-              backgroundColor: isSelected
-                ? theme.selectedCardBackground
-                : cardBackground,
-              borderWidth: 4,
-              borderColor: isSelected
-                ? theme.selectedBorder
-                : "rgba(255,255,255,0.3)",
-              overflow: "hidden",
-              shadowColor: isSelected
-                ? theme.shadow
-                : "rgba(0,0,0,0.15)",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: isSelected ? 0.4 : 0.2,
-              shadowRadius: 20,
-              elevation: isSelected ? 15 : 8,
-              marginBottom: 12,
-            }}
+          <Animated.View
+            style={[
+              animatedStyle,
+              {
+                alignItems: "center",
+              },
+            ]}
           >
-            <Image
-              source={imageSource}
+            {/* Avatar Container with Gradient */}
+            <LinearGradient
+              colors={cardGradient}
               style={{
-                width: "100%",
-                height: "100%",
+                width: cardSize,
+                height: cardSize,
+                borderRadius: cardSize / 2,
+                borderWidth: 3,
+                borderColor: isSelected
+                  ? theme.selectedBorder
+                  : "transparent",
+                overflow: "hidden",
+                shadowColor: theme.shadow,
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: isSelected ? 0.4 : 0.2,
+                shadowRadius: 16,
+                elevation: isSelected ? 12 : 6,
+                marginBottom: 16,
+                justifyContent: "center",
+                alignItems: "center",
               }}
-              resizeMode="cover"
-            />
-          </View>
+            >
+              <Image
+                source={imageSource}
+                style={{
+                  width: cardSize * 0.75,
+                  height: cardSize * 0.75,
+                }}
+                resizeMode="contain"
+              />
+            </LinearGradient>
 
-          {/* Label */}
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: isSelected
-                ? theme.selectedCardBackground
-                : theme.textPrimary,
-              letterSpacing: 0.5,
-              textAlign: "center",
-            }}
-          >
-            {label}
-          </Text>
-        </Animated.View>
-      </Pressable>
-    );
-  };
-
-  const AgeCard = ({
-    cardAge,
-    isSelected,
-    onPress,
-  }: {
-    cardAge: number;
-    isSelected: boolean;
-    onPress: () => void;
-  }) => (
-    <Pressable
-      style={{
-        width: 80,
-        height: 100,
-        backgroundColor: isSelected
-          ? theme.selectedCardBackground
-          : theme.cardBackground,
-        borderRadius: 20,
-        justifyContent: "center",
-        alignItems: "center",
-        marginHorizontal: 4,
-        borderWidth: 2,
-        borderColor: isSelected
-          ? theme.selectedBorder
-          : theme.border,
-        shadowColor: isSelected
-          ? theme.shadow
-          : "rgba(0,0,0,0.1)",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: isSelected ? 0.3 : 0.1,
-        shadowRadius: 8,
-        elevation: isSelected ? 8 : 2,
-      }}
-      onPressIn={() => onPress()}
-    >
-      <Text
-        style={{
-          fontSize: 26,
-          fontWeight: "800",
-          color: isSelected ? "#FFFFFF" : theme.textPrimary,
-        }}
-      >
-        {cardAge}
-      </Text>
-      <Text
-        style={{
-          fontSize: 12,
-          fontWeight: "600",
-          color: isSelected
-            ? "rgba(255,255,255,0.8)"
-            : theme.textSecondary,
-          marginTop: 4,
-        }}
-      >
-        years
-      </Text>
-    </Pressable>
+            {/* Label */}
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: isSelected
+                  ? theme.selectedBorder
+                  : theme.textPrimary,
+                letterSpacing: 0.5,
+                textAlign: "center",
+              }}
+            >
+              {label}
+            </Text>
+          </Animated.View>
+        </Pressable>
+      );
+    }
   );
 
-  return (
-    <LinearGradient
-      colors={theme.background}
-      style={{ flex: 1 }}
-    >
-      <View
-        style={{
-          flex: 1,
-          paddingHorizontal: 24,
-          paddingTop: 40,
-        }}
-      >
-        {/* Header */}
-        <View
-          style={{ alignItems: "center", marginBottom: 50 }}
-        >
-          <Text
-            style={{
-              fontSize: 16,
-              color: theme.textSecondary,
-              textAlign: "center",
-              marginBottom: 12,
-              fontWeight: "500",
-              letterSpacing: 0.5,
-            }}
-          >
-            Tell us about yourself
-          </Text>
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: "800",
-              color: theme.textPrimary,
-              textAlign: "center",
-              letterSpacing: -0.5,
-            }}
-          >
-            Who are you?
-          </Text>
-        </View>
+  const AgeCard = React.memo(
+    ({
+      cardAge,
+      isSelected,
+      onPress,
+    }: {
+      cardAge: number;
+      isSelected: boolean;
+      onPress: () => void;
+    }) => {
+      const cardGradient = isSelected
+        ? theme.selectedCardBackground
+        : theme.ageCardBackground;
 
-        {/* Gender Selection */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 60,
-            paddingHorizontal: 20,
-          }}
-        >
-          <GenderCard
-            genderType="male"
-            imageSource={require("@/assets/images/male.png")}
-            label="Male"
-            isSelected={gender === "male"}
-            onPress={() => handleGenderSelect("male")}
-            animatedStyle={maleAnimatedStyle}
-          />
-          <GenderCard
-            genderType="female"
-            imageSource={require("@/assets/images/female.png")}
-            label="Female"
-            isSelected={gender === "female"}
-            onPress={() => handleGenderSelect("female")}
-            animatedStyle={femaleAnimatedStyle}
-          />
-        </View>
-
-        {/* Age Selection */}
-        {gender && (
-          <Animated.View
-            style={[ageContainerStyle, { flex: 1 }]}
+      return (
+        <Pressable onPress={onPress}>
+          <LinearGradient
+            colors={cardGradient}
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 12,
+              justifyContent: "center",
+              alignItems: "center",
+              borderWidth: 2,
+              borderColor: isSelected
+                ? theme.selectedBorder
+                : theme.border,
+              shadowColor: theme.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isSelected ? 0.4 : 0.1,
+              shadowRadius: 4,
+              elevation: isSelected ? 6 : 2,
+            }}
           >
             <Text
               style={{
-                fontSize: 24,
-                fontWeight: "700",
+                fontSize: 16,
+                fontWeight: "800",
+                color: isSelected
+                  ? colors.text.inverse
+                  : theme.textPrimary,
+              }}
+            >
+              {cardAge}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+      );
+    }
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
+      <LinearGradient
+        colors={theme.background}
+        style={{ flex: 1 }}
+      >
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: 24,
+            paddingTop: 60,
+          }}
+        >
+          {/* Header */}
+          <View
+            style={{
+              alignItems: "center",
+              marginBottom: 40,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                color: theme.textSecondary,
+                textAlign: "center",
+                marginBottom: 8,
+                fontWeight: "500",
+                letterSpacing: 0.5,
+              }}
+            >
+              Tell us about yourself
+            </Text>
+            <Text
+              style={{
+                fontSize: 32,
+                fontWeight: "800",
                 color: theme.textPrimary,
                 textAlign: "center",
-                marginBottom: 30,
-                letterSpacing: -0.3,
+                letterSpacing: -0.5,
               }}
             >
-              How old are you?
+              Who are you?
             </Text>
+          </View>
 
-            <ScrollView
-              ref={ageScrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                paddingHorizontal: (width - 80) / 2,
-                alignItems: "center",
-              }}
-              snapToInterval={88} // Adjusted for card width + margins
-              decelerationRate="fast"
-              style={{ flexGrow: 0, marginHorizontal: -24 }}
-              onMomentumScrollEnd={handleAgeScroll}
+          {/* Gender Selection */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginBottom: 50,
+              paddingHorizontal: 20,
+            }}
+          >
+            <GenderCard
+              genderType="male"
+              imageSource={require("@/assets/images/male.png")}
+              label="Male"
+              isSelected={gender === "male"}
+              onPress={() => handleGenderSelect("male")}
+              animatedStyle={maleAnimatedStyle}
+            />
+            <GenderCard
+              genderType="female"
+              imageSource={require("@/assets/images/female.png")}
+              label="Female"
+              isSelected={gender === "female"}
+              onPress={() => handleGenderSelect("female")}
+              animatedStyle={femaleAnimatedStyle}
+            />
+          </View>
+
+          {/* Age Selection */}
+          {gender && (
+            <Animated.View
+              style={[ageContainerStyle, { flex: 1 }]}
             >
-              {ages.map((ageItem) => (
-                <AgeCard
-                  key={ageItem}
-                  cardAge={ageItem}
-                  isSelected={age === ageItem}
-                  onPress={() => handleAgeSelect(ageItem)}
-                />
-              ))}
-            </ScrollView>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: "700",
+                  color: theme.textPrimary,
+                  textAlign: "center",
+                  marginBottom: 30,
+                  letterSpacing: -0.3,
+                }}
+              >
+                How old are you?
+              </Text>
 
-            <View style={{ height: 40 }} />
-          </Animated.View>
-        )}
-      </View>
-    </LinearGradient>
+              {/* Age Selection with Simple ScrollView */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 20,
+                  gap: 8,
+                }}
+                style={{
+                  flexGrow: 0,
+                  maxHeight: 80,
+                }}
+              >
+                {ages.map((ageItem) => (
+                  <AgeCard
+                    key={ageItem}
+                    cardAge={ageItem}
+                    isSelected={age === ageItem}
+                    onPress={() => handleAgeSelect(ageItem)}
+                  />
+                ))}
+              </ScrollView>
+
+              <View style={{ height: 60 }} />
+            </Animated.View>
+          )}
+        </View>
+      </LinearGradient>
+    </View>
   );
 };
