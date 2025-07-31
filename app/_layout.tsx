@@ -57,14 +57,15 @@ export default function RootLayout() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsNavigatorReady(true);
-    }, 100);
+      setIsAppReady(true); // Mark app as ready after a short delay
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
   const showLoading =
     (!fontsLoaded && !fontError) ||
-    isLoading ||
-    !isNavigatorReady;
+    !isNavigatorReady ||
+    !isAppReady;
 
   return (
     <ErrorBoundary>
