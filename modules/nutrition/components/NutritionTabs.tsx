@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
+import { View, Text, TouchableOpacity, useColorScheme, SafeAreaView } from "react-native";
 import React, { useState } from "react";
 import { COLORS } from "@/constants/theme";
 import { CaloriesTab } from "./CaloriesTab";
@@ -36,46 +36,59 @@ export const NutritionTabs: React.FC<NutritionTabsProps> = ({ dateString }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Tab Header */}
-      <View
-        style={{
-          backgroundColor: colors.surface,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          marginBottom: 16,
-          borderRadius: 8,
-        }}
-      >
-        <View className="flex-row justify-around">
-          {TAB_DATA.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id)}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderBottomWidth: activeTab === tab.id ? 2 : 0,
-                borderBottomColor: "#007AFF",
-              }}
-            >
-              <Text
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, paddingTop: 8 }}>
+        {/* Tab Header */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            marginBottom: 16,
+            marginHorizontal: 16,
+            borderRadius: 8,
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 1,
+            },
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+            elevation: 2,
+          }}
+        >
+          <View className="flex-row justify-around">
+            {TAB_DATA.map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
                 style={{
-                  color:
-                    activeTab === tab.id ? "#007AFF" : colors.text.secondary,
-                  fontWeight: activeTab === tab.id ? "600" : "normal",
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderBottomWidth: activeTab === tab.id ? 2 : 0,
+                  borderBottomColor: "#007AFF",
                 }}
-                className="text-sm tracking-wide"
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={{
+                    color:
+                      activeTab === tab.id ? "#007AFF" : colors.text.secondary,
+                    fontWeight: activeTab === tab.id ? "600" : "normal",
+                  }}
+                  className="text-sm tracking-wide"
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Tab Content */}
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          {renderTabContent()}
         </View>
       </View>
-
-      {/* Tab Content */}
-      <View style={{ flex: 1 }}>{renderTabContent()}</View>
-    </View>
+    </SafeAreaView>
   );
 };

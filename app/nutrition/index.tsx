@@ -26,7 +26,7 @@ import { useAppStore } from "@/stores/appStore";
 import { COLORS } from "@/constants/theme";
 import { CaloriesTab, MacrosTab, NutrientsTab } from "@/modules/nutrition";
 
-const HEADER_HEIGHT = 64;
+const HEADER_HEIGHT = 72;
 const TABS_HEIGHT = 50;
 const DATE_NAVIGATOR_HEIGHT = 70;
 
@@ -232,6 +232,7 @@ export default function NutritionScreen() {
       <StatusBar
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
+        translucent={false}
       />
 
       <Stack.Screen
@@ -251,6 +252,7 @@ export default function NutritionScreen() {
           backgroundColor: colors.surface,
           paddingHorizontal: 16,
           paddingVertical: 12,
+          paddingTop: 16,
           zIndex: 30,
           transform: [{ translateY: headerTranslateY }],
           shadowColor: "#000",
