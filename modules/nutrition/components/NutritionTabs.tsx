@@ -1,4 +1,10 @@
-import { View, Text, TouchableOpacity, useColorScheme, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  SafeAreaView,
+} from "react-native";
 import React, { useState } from "react";
 import { COLORS } from "@/constants/theme";
 import { CaloriesTab } from "./CaloriesTab";
@@ -17,8 +23,11 @@ const TAB_DATA = [
   { id: "macros" as TabType, label: "MACROS" },
 ];
 
-export const NutritionTabs: React.FC<NutritionTabsProps> = ({ dateString }) => {
-  const [activeTab, setActiveTab] = useState<TabType>("nutrients");
+export const NutritionTabs: React.FC<
+  NutritionTabsProps
+> = ({ dateString }) => {
+  const [activeTab, setActiveTab] =
+    useState<TabType>("nutrients");
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
 
@@ -36,7 +45,12 @@ export const NutritionTabs: React.FC<NutritionTabsProps> = ({ dateString }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
+    >
       <View style={{ flex: 1, paddingTop: 8 }}>
         {/* Tab Header */}
         <View
@@ -65,15 +79,21 @@ export const NutritionTabs: React.FC<NutritionTabsProps> = ({ dateString }) => {
                 style={{
                   paddingVertical: 8,
                   paddingHorizontal: 16,
-                  borderBottomWidth: activeTab === tab.id ? 2 : 0,
+                  borderBottomWidth:
+                    activeTab === tab.id ? 2 : 0,
                   borderBottomColor: "#007AFF",
                 }}
               >
                 <Text
                   style={{
                     color:
-                      activeTab === tab.id ? "#007AFF" : colors.text.secondary,
-                    fontWeight: activeTab === tab.id ? "600" : "normal",
+                      activeTab === tab.id
+                        ? "#007AFF"
+                        : colors.text.secondary,
+                    fontWeight:
+                      activeTab === tab.id
+                        ? "600"
+                        : "normal",
                   }}
                   className="text-sm tracking-wide"
                 >

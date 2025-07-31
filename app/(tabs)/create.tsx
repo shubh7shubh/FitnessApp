@@ -11,15 +11,21 @@ import {
   Platform,
   StyleSheet,
   ScrollView,
+  useColorScheme,
+  SafeAreaView,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "@/constants/theme";
 
 export default function CreateScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme() ?? "light";
+  const colors = COLORS[colorScheme];
+  
   const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -106,105 +112,152 @@ export default function CreateScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={
-        Platform.OS === "ios" ? "padding" : "height"
-      }
-      style={styles.container}
-    >
-      <Stack.Screen options={{ title: "Create Post" }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity
-          onPress={pickImage}
-          style={styles.imagePicker}
-        >
-          {selectedImage ? (
-            <Image
-              source={{ uri: selectedImage.uri }}
-              style={styles.image}
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons
-                name="camera"
-                size={50}
-                color="#555"
-              />
-              <Text style={styles.imagePlaceholderText}>
-                Tap to select an image
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TextInput
-          value={caption}
-          onChangeText={setCaption}
-          placeholder="Write a caption..."
-          placeholderTextColor="#999"
-          style={styles.input}
-          multiline
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        behavior={
+          Platform.OS === "ios" ? "padding" : "height"
+        }
+        style={styles.container}
+      >
+        <Stack.Screen 
+          options={{ 
+            title: "Create Post",
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.text.primary,
+            headerTitleStyle: { color: colors.text.primary },
+          }} 
         />
+        <ScrollView contentContainerStyle={styles.content}>
+          <TouchableOpacity
+            onPress={pickImage}
+            style={[
+              styles.imagePicker, 
+              { 
+                backgroundColor: colors.surface,
+                borderColor: selectedImage ? 'transparent' : colors.border,
+                borderWidth: selectedImage ? 0 : 2,
+              }
+            ]}
+          >
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage.uri }}
+                style={styles.image}
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Ionicons
+                  name="camera"
+                  size={50}
+                  color={colors.text.muted}
+                />
+                <Text style={[styles.imagePlaceholderText, { color: colors.text.muted }]}>
+                  Tap to select an image
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleShare}
-          style={styles.button}
-          disabled={isSharing}
-        >
-          {isSharing ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>Share</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <TextInput
+            value={caption}
+            onChangeText={setCaption}
+            placeholder="Write a caption..."
+            placeholderTextColor={colors.text.muted}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: colors.surface, 
+                color: colors.text.primary,
+                borderColor: colors.border,
+              }
+            ]}
+            multiline
+          />
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              onPress={handleShare}
+              style={[
+                styles.button,
+                { 
+                  backgroundColor: colors.primary,
+                  opacity: isSharing ? 0.6 : 1,
+                }
+              ]}
+              disabled={isSharing}
+            >
+              {isSharing ? (
+                <ActivityIndicator color={colors.text.inverse} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.text.inverse }]}>Share</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 // Using StyleSheet for clarity
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "black" },
-  content: { flexGrow: 1, padding: 16 },
+  safeArea: { 
+    flex: 1,
+  },
+  container: { 
+    flex: 1,
+  },
+  content: { 
+    flexGrow: 1, 
+    padding: 20,
+    paddingBottom: 120, // Extra padding to account for tab bar
+  },
   imagePicker: {
     aspectRatio: 1,
     width: "100%",
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
     overflow: "hidden",
+    borderStyle: 'dashed',
   },
   imagePlaceholder: {
     justifyContent: "center",
     alignItems: "center",
+    padding: 40,
   },
   imagePlaceholderText: {
-    color: "#777",
-    marginTop: 8,
-  },
-  image: { width: "100%", height: "100%" },
-  input: {
-    color: "white",
+    marginTop: 12,
     fontSize: 16,
-    padding: 10,
-    minHeight: 100,
+    textAlign: 'center',
+  },
+  image: { 
+    width: "100%", 
+    height: "100%",
+  },
+  input: {
+    fontSize: 16,
+    padding: 16,
+    minHeight: 120,
     textAlignVertical: "top",
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
+    borderRadius: 12,
+    marginBottom: 30,
+    borderWidth: 1,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    paddingBottom: 20,
   },
   button: {
-    backgroundColor: "#007AFF",
     paddingVertical: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: "auto",
-    marginBottom: 20,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   buttonText: {
-    color: "white",
-    fontWeight: "bold",
+    fontWeight: "600",
     fontSize: 16,
   },
 });
