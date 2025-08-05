@@ -35,7 +35,9 @@ export default function RootLayout() {
   const [isAppReady, setIsAppReady] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
-    "JetBrainsMono-Medium": require("../assets/fonts/JetBrainsMono-Medium.ttf"),
+    "Inter-Regular": require("../assets/fonts/Inter_18pt-Bold.ttf"),
+    "Inter-SemiBold": require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
+    "Inter-Bold": require("../assets/fonts/Inter_18pt-Bold.ttf"),
   });
 
   const onLayoutRootView = useCallback(async () => {

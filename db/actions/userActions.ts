@@ -1,7 +1,7 @@
 import { database } from "@/db";
-import { User } from "@/db/models/User";
+import { User, UserProfileData } from "@/db/models/User";
 import { Q } from "@nozbe/watermelondb";
-
+import { calculateUserGoals } from "@/modules/onboarding/services/goalCalculator";
 // Get the users collection from the database
 const users = database.collections.get<User>("users");
 
@@ -77,14 +77,19 @@ export async function getActiveUser(): Promise<User | null> {
 
 // Create a new user
 export const createUser = async (
-  profile: UserCreationData
-) => {
-  let newUser: User | undefined;
+  profile: UserProfileData
+): Promise<User> => {
+  return await database.write(async () => {
+    // --- THIS IS THE NEW LOGIC ---
+    // 1. First, call our pure calculation function with the profile data.
+    const calculatedGoals = calculateUserGoals(profile);
 
-  await database.write(async () => {
-    newUser = await database.collections
+    // 2. Now, create the user record, including both the raw data
+    //    from the form AND the newly calculated goals.
+    return await database.collections
       .get<User>("users")
       .create((user) => {
+        // Raw data
         user.serverId = profile.server_id;
         user.email = profile.email || "";
         user.name = profile.name;
@@ -96,10 +101,16 @@ export const createUser = async (
         user.goalType = profile.goalType;
         user.activityLevel = profile.activityLevel;
         user.goalWeightKg = profile.targetWeightKg;
+
+        // Calculated data
+        user.tdee = calculatedGoals.tdee;
+        user.dailyCalorieGoal =
+          calculatedGoals.dailyCalorieGoal;
+        user.proteinGoal_g = calculatedGoals.proteinGoal_g;
+        user.carbsGoal_g = calculatedGoals.carbsGoal_g;
+        user.fatGoal_g = calculatedGoals.fatGoal_g;
       });
   });
-
-  return newUser;
 };
 
 // Update user data
