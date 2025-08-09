@@ -75,6 +75,7 @@ export default function OnboardingFlow() {
     if (isEditMode && currentUser) {
       onboardingState.setData({
         gender: currentUser.gender as any,
+        age: currentUser.age,
         heightCm: currentUser.heightCm,
         currentWeightKg: currentUser.currentWeightKg,
         activityLevel: currentUser.activityLevel as any,
@@ -144,6 +145,7 @@ export default function OnboardingFlow() {
           // Update existing user
           const updates = {
             gender: onboardingState.gender!,
+            age: onboardingState.age,
             heightCm: onboardingState.heightCm!,
             currentWeightKg:
               onboardingState.currentWeightKg!,
