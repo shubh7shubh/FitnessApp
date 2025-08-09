@@ -14,6 +14,7 @@ import {
   Image,
   useColorScheme,
   SafeAreaView,
+  StatusBar,
 } from "react-native";
 import {
   Stack,
@@ -87,65 +88,128 @@ export default function CommentsScreen() {
   };
 
   return (
-    <SafeAreaView
-      className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
     >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
       {/* Header */}
-      <View
-        className={`${isDark ? "bg-gray-800" : "bg-white"} border-b ${isDark ? "border-gray-700" : "border-gray-200"}`}
+      <SafeAreaView
+        style={{ backgroundColor: colors.background }}
       >
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <View className="flex-row items-center">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            backgroundColor: colors.background,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
             <TouchableOpacity
               onPress={() => router.back()}
-              className="w-8 h-8 items-center justify-center rounded-full mr-3"
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+                backgroundColor: colors.surface,
+                marginRight: 12,
+              }}
             >
               <Ionicons
                 name="arrow-back"
                 size={20}
-                color={isDark ? "#D1D5DB" : "#6B7280"}
+                color={colors.text.primary}
               />
             </TouchableOpacity>
             <Text
-              className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+              style={{
+                color: colors.text.primary,
+                fontSize: 20,
+                fontWeight: "bold",
+              }}
             >
               Comments
             </Text>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#00D4AA" />
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+          />
         </View>
       ) : (
         <FlatList
           data={comments}
           keyExtractor={(item) => item.id}
-          className="flex-1"
+          style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 16,
           }}
           renderItem={({ item }) => (
-            <View className="flex-row mb-4">
+            <View
+              style={{
+                flexDirection: "row",
+                marginBottom: 16,
+              }}
+            >
               <Image
                 source={{
                   uri:
                     item.author?.avatar_url ||
                     `https://ui-avatars.com/api/?name=${item.author?.username?.charAt(0) || "U"}&background=${isDark ? "374151" : "E5E7EB"}&color=${isDark ? "F9FAFB" : "1F2937"}`,
                 }}
-                className="w-8 h-8 rounded-full"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                }}
               />
-              <View className="ml-3 flex-1">
+              <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text
-                  className={`font-semibold text-sm mb-1 ${isDark ? "text-white" : "text-gray-900"}`}
+                  style={{
+                    color: colors.text.primary,
+                    fontWeight: "600",
+                    fontSize: 14,
+                    marginBottom: 4,
+                  }}
                 >
                   {item.author?.username || "Unknown"}
                 </Text>
                 <Text
-                  className={`text-sm leading-5 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  style={{
+                    color: colors.text.primary,
+                    fontSize: 14,
+                    lineHeight: 20,
+                  }}
                 >
                   {item.content}
                 </Text>
@@ -153,15 +217,24 @@ export default function CommentsScreen() {
             </View>
           )}
           ListEmptyComponent={
-            <View className="items-center py-16">
+            <View
+              style={{
+                alignItems: "center",
+                paddingVertical: 64,
+              }}
+            >
               <Ionicons
                 name="chatbubble-outline"
                 size={48}
-                color={isDark ? "#6B7280" : "#9CA3AF"}
-                className="mb-4"
+                color={colors.text.secondary}
+                style={{ marginBottom: 16 }}
               />
               <Text
-                className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                style={{
+                  textAlign: "center",
+                  color: colors.text.secondary,
+                  fontSize: 16,
+                }}
               >
                 No comments yet. Be the first!
               </Text>
@@ -172,30 +245,53 @@ export default function CommentsScreen() {
 
       {/* Comment Input */}
       <View
-        className={`${isDark ? "bg-gray-800" : "bg-white"} border-t ${isDark ? "border-gray-700" : "border-gray-200"} px-4 py-3`}
+        style={{
+          backgroundColor: colors.background,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
       >
-        <View className="flex-row items-end">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+          }}
+        >
           <TextInput
             value={newComment}
             onChangeText={setNewComment}
             placeholder="Add a comment..."
-            placeholderTextColor={
-              isDark ? "#6B7280" : "#9CA3AF"
-            }
-            className={`flex-1 ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"} rounded-2xl px-4 py-2 max-h-24`}
+            placeholderTextColor={colors.text.secondary}
+            style={{
+              flex: 1,
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              maxHeight: 96,
+              color: colors.text.primary,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
             multiline
             textAlignVertical="top"
           />
           <TouchableOpacity
             onPress={handleAddComment}
             disabled={isPosting || !newComment.trim()}
-            className={`ml-3 w-10 h-10 items-center justify-center rounded-full ${
-              newComment.trim()
-                ? "bg-teal-500"
-                : isDark
-                  ? "bg-gray-600"
-                  : "bg-gray-300"
-            }`}
+            style={{
+              marginLeft: 12,
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 20,
+              backgroundColor: newComment.trim()
+                ? colors.primary
+                : colors.surface,
+            }}
           >
             {isPosting ? (
               <ActivityIndicator
@@ -209,15 +305,13 @@ export default function CommentsScreen() {
                 color={
                   newComment.trim()
                     ? "white"
-                    : isDark
-                      ? "#9CA3AF"
-                      : "#6B7280"
+                    : colors.text.secondary
                 }
               />
             )}
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

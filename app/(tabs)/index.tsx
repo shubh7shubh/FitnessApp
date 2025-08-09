@@ -7,24 +7,22 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  Pressable,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, Link } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { HeroSection } from "@/modules/home/components/HeroSection";
 import { PlansBanner } from "@/modules/home/components/PlansBanner";
+import ProductsSection from "@/modules/products/components/ProductsSection";
+import { QuickLogModal } from "@/modules/nutrition";
 import { useTheme } from "@/modules/home/hooks/useTheme";
 import { useHomeStore } from "@/modules/home/store/homeStore";
-
-import { QuickLogModal } from "@/modules/nutrition";
 import { useAppStore } from "@/stores/appStore";
-import { Pressable } from "react-native";
-
 import { useProductsStore } from "@/modules/products/store/useProductsStore";
-import ProductsSection from "@/modules/products/components/ProductsSection";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function Index(): JSX.Element {
   const router = useRouter();

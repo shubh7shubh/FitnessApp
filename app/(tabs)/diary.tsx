@@ -14,6 +14,7 @@ import React, {
   useMemo,
 } from "react";
 import { Stack, useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import PagerView, {
   PagerViewOnPageSelectedEvent,
 } from "react-native-pager-view";
@@ -221,6 +222,21 @@ export default function DiaryTab() {
   // Define header background color
   const headerBgColor = isDark ? "#1a1a1a" : "#ffffff";
 
+  // Set status bar style when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle(
+        isDark ? "light-content" : "dark-content"
+      );
+
+      return () => {
+        StatusBar.setBarStyle(
+          isDark ? "light-content" : "dark-content"
+        );
+      };
+    }, [isDark])
+  );
+
   // Optimize: Create only 21 pages (10 days before, today, 10 days after)
   const { dates, initialPage } = useMemo(() => {
     const datesList = Array.from({ length: 21 }).map(
@@ -281,7 +297,8 @@ export default function DiaryTab() {
           barStyle={
             isDark ? "light-content" : "dark-content"
           }
-          backgroundColor={headerBgColor}
+          backgroundColor="transparent"
+          translucent={true}
         />
         <View
           style={{
@@ -312,7 +329,8 @@ export default function DiaryTab() {
     >
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={headerBgColor}
+        backgroundColor="transparent"
+        translucent={true}
       />
 
       <Stack.Screen
@@ -321,9 +339,10 @@ export default function DiaryTab() {
         }}
       />
 
-      {/* Fixed Header */}
-      <SafeAreaView
+      {/* Fixed Header with proper safe area */}
+      <View
         style={{
+          paddingTop: insets.top,
           backgroundColor: headerBgColor,
         }}
       >
@@ -332,6 +351,7 @@ export default function DiaryTab() {
             height: HEADER_HEIGHT,
             backgroundColor: headerBgColor,
             paddingHorizontal: 20,
+            paddingTop: 8,
             paddingBottom: 12,
             shadowColor: isDark ? "#000" : "#000",
             shadowOffset: {
@@ -389,7 +409,7 @@ export default function DiaryTab() {
             </Pressable>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
 
       {/* Scrollable Content with Sticky Headers */}
       <PagerView
