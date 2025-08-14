@@ -29,8 +29,7 @@ export default function Index(): JSX.Element {
   const { colors, isDark } = useTheme();
   const { refreshData } = useHomeStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [showQuickLogModal, setShowQuickLogModal] =
-    useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const { currentUser } = useAppStore();
   const { todayStats } = useHomeStore();
   const [debugTapCount, setDebugTapCount] = useState(0);
@@ -51,8 +50,7 @@ export default function Index(): JSX.Element {
     setRefreshing(false);
   };
 
-  const handleProfilePress = () =>
-    router.push("/(modals)/profile");
+  const handleProfilePress = () => router.push("/(modals)/profile");
   const handleTitlePress = () => {
     const newCount = debugTapCount + 1;
     if (newCount >= 5) {
@@ -263,10 +261,8 @@ export default function Index(): JSX.Element {
                         },
                       }),
                       // Press feedback
-                      transform: [
-                        { scale: pressed ? 0.96 : 1 },
-                      ],
-                      opacity: pressed ? 0.8 : 1,
+                      transform: [{ scale: pressed ? 0.94 : 1 }],
+                      opacity: pressed ? 0.9 : 1,
                     },
                   ]}
                   onPress={action.onPress}
@@ -318,11 +314,11 @@ export default function Index(): JSX.Element {
 
                     {/* Action Label */}
                     <Text
-                      className="text-xs text-center font-semibold"
+                      className="text-sm text-center font-semibold"
                       style={{
                         color: colors.text.primary,
                         fontFamily: "Inter_18pt-SemiBold",
-                        lineHeight: 16,
+                        lineHeight: 18,
                       }}
                       numberOfLines={2}
                     >
@@ -335,11 +331,7 @@ export default function Index(): JSX.Element {
               // Handle Blogs link specially
               if (action.label === "Blogs") {
                 return (
-                  <Link
-                    href="/blogs"
-                    asChild
-                    key={`blogs-${index}`}
-                  >
+                  <Link href="/blogs" asChild key={`blogs-${index}`}>
                     {ActionCard}
                   </Link>
                 );

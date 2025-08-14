@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Force default app fonts (Inter) across all screens */
+* {
+  font-family:
+    Inter_18pt-Regular,
+    Inter-Regular,
+    Inter,
+    System,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue";
+}
+
+.font-bold {
+  font-family:
+    Inter_18pt-Bold,
+    Inter-Bold,
+    Inter_18pt-SemiBold,
+    Inter,
+    System,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue";
+}
+
+.font-semibold {
+  font-family:
+    Inter_18pt-SemiBold,
+    Inter-SemiBold,
+    Inter,
+    System,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue";
+}

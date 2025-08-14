@@ -1,16 +1,12 @@
 // src/features/onboarding/screens/ActivityLevelScreen.tsx
 
 import React from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  useColorScheme,
-} from "react-native";
+import { View, Text, Pressable, useColorScheme } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useOnboardingStore } from "../../store";
 import { ActivityLevel } from "../../types";
 import { ActivityCardProps } from "./../../types/index";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 // Define the options for the screen
 const ACTIVITY_LEVELS = [
@@ -29,8 +25,7 @@ const ACTIVITY_LEVELS = [
   {
     key: "moderately_active" as ActivityLevel,
     title: "Moderately Active",
-    description:
-      "Moderate exercise or sports 3-5 days a week",
+    description: "Moderate exercise or sports 3-5 days a week",
     icon: "activity" as keyof typeof Feather.glyphMap,
   },
   {
@@ -57,11 +52,7 @@ const ActivityCard = ({
     <View
       className={`w-12 h-12 rounded-full justify-center items-center mr-4 ${isSelected ? "bg-green-500" : "bg-gray-200 dark:bg-slate-700"}`}
     >
-      <Feather
-        name={icon}
-        size={24}
-        color={isSelected ? "white" : "#6B7280"}
-      />
+      <Feather name={icon} size={24} color={isSelected ? "white" : "#6B7280"} />
     </View>
     <View className="flex-1">
       <Text className="text-lg font-bold text-gray-800 dark:text-white">
@@ -84,21 +75,22 @@ export const ActivityLevelScreen = () => {
         How active are you?
       </Text>
       <Text className="text-base text-gray-500 dark:text-gray-400 text-center mb-10">
-        This helps us fine-tune your daily calorie goal. Be
-        honest!
+        This helps us fine-tune your daily calorie goal. Be honest!
       </Text>
 
-      {ACTIVITY_LEVELS.map((level) => (
-        <ActivityCard
+      {ACTIVITY_LEVELS.map((level, idx) => (
+        <Animated.View
           key={level.key}
-          title={level.title}
-          description={level.description}
-          icon={level.icon}
-          isSelected={activityLevel === level.key}
-          onPress={() =>
-            setData({ activityLevel: level.key })
-          }
-        />
+          entering={FadeInDown.duration(300).delay(idx * 120)}
+        >
+          <ActivityCard
+            title={level.title}
+            description={level.description}
+            icon={level.icon}
+            isSelected={activityLevel === level.key}
+            onPress={() => setData({ activityLevel: level.key })}
+          />
+        </Animated.View>
       ))}
     </View>
   );

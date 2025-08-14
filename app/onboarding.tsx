@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   SafeAreaView,
@@ -9,12 +9,10 @@ import {
   Alert,
 } from "react-native";
 import PagerView from "react-native-pager-view";
-import {
-  useRouter,
-  Stack,
-  useLocalSearchParams,
-} from "expo-router";
+import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useOnboardingStore } from "@/modules/onboarding/store";
 import { WelcomeScreen } from "@/modules/onboarding/components/screens/WelcomeScreen";
 import { GenderScreen } from "@/modules/onboarding/components/screens/GenderScreen";
@@ -23,26 +21,53 @@ import { ActivityLevelScreen } from "@/modules/onboarding/components/screens/Act
 import { GoalScreen } from "@/modules/onboarding/components/screens/GoalScreen";
 import { useAppStore } from "@/stores/appStore";
 import { useUserStore } from "@/stores/useUserStore";
-import {
-  createUser,
-  updateUser,
-} from "@/db/actions/userActions";
+import { createUser, updateUser } from "@/db/actions/userActions";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/providers/ToastProvider";
 
-// A simple, reusable progress bar component
-const OnboardingProgressBar = ({
-  progress,
+// Multi-step progress indicator with subtle animation
+const StepProgress = ({
+  current,
+  total,
 }: {
-  progress: number;
-}) => (
-  <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+  current: number;
+  total: number;
+}) => {
+  const isDark = useColorScheme() === "dark";
+  const segments = useMemo(() => Array.from({ length: total }), [total]);
+  return (
     <View
-      style={{ width: `${progress * 100}%` }}
-      className="h-2 bg-green-500 rounded-full"
-    />
-  </View>
-);
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+      }}
+    >
+      {segments.map((_, idx) => (
+        <Animated.View
+          key={idx}
+          entering={FadeInDown.duration(300).delay(idx * 80)}
+          style={{
+            marginTop: 20,
+            height: 10,
+            width: idx === current ? 42 : 28,
+            borderRadius: 999,
+            backgroundColor:
+              idx === current
+                ? isDark
+                  ? "#4F46E5"
+                  : "#3B82F6"
+                : isDark
+                  ? "rgba(255,255,255,0.18)"
+                  : "rgba(0,0,0,0.08)",
+            opacity: idx === current ? 1 : 0.6,
+          }}
+        />
+      ))}
+    </View>
+  );
+};
 
 export default function OnboardingFlow() {
   const pagerRef = useRef<PagerView>(null);
@@ -53,14 +78,9 @@ export default function OnboardingFlow() {
   const [currentPage, setCurrentPage] = useState(0);
   const onboardingState = useOnboardingStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {
-    currentUser,
-    setCurrentUser,
-    setOnboardingComplete,
-  } = useAppStore();
+  const { currentUser, setCurrentUser, setOnboardingComplete } = useAppStore();
   const { setUserData } = useUserStore();
-  const [supabaseUser, setSupabaseUser] =
-    useState<any>(null);
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const { showToast } = useToast();
 
   // Get current user on mount and pre-populate if editing
@@ -82,8 +102,7 @@ export default function OnboardingFlow() {
         currentWeightKg: currentUser.currentWeightKg,
         activityLevel: currentUser.activityLevel as any,
         goalType: currentUser.goalType as any,
-        targetWeightKg:
-          currentUser.goalWeightKg || undefined,
+        targetWeightKg: currentUser.goalWeightKg || undefined,
       });
     }
   }, [isEditMode, currentUser]);
@@ -151,15 +170,13 @@ export default function OnboardingFlow() {
             gender: onboardingState.gender!,
             age: onboardingState.age,
             heightCm: onboardingState.heightCm!,
-            currentWeightKg:
-              onboardingState.currentWeightKg!,
+            currentWeightKg: onboardingState.currentWeightKg!,
             activityLevel: onboardingState.activityLevel!,
             goalType: onboardingState.goalType!,
             targetWeightKg:
-              onboardingState.targetWeightKg ||
-              currentUser.goalWeightKg,
+              onboardingState.targetWeightKg || currentUser.goalWeightKg,
             // Calculate dateOfBirth from age
-            dateOfBirth: onboardingState.age 
+            dateOfBirth: onboardingState.age
               ? new Date(
                   new Date().setFullYear(
                     new Date().getFullYear() - onboardingState.age
@@ -170,35 +187,25 @@ export default function OnboardingFlow() {
               : currentUser.dateOfBirth,
           };
 
-          console.log(
-            "🔄 Updating user with critical changes:",
-            updates
-          );
+          console.log("🔄 Updating user with critical changes:", updates);
           console.log(
             "📅 Age being set:",
             onboardingState.age,
             "-> Date of birth:",
             updates.dateOfBirth
           );
-          const updatedUser = await updateUser(
-            currentUser,
-            updates
-          );
+          const updatedUser = await updateUser(currentUser, updates);
 
           // Update both stores with the new user data
           setCurrentUser(updatedUser);
           setUserData(updatedUser);
 
-          console.log(
-            "✅ User updated successfully with new goals:",
-            {
-              dailyCalorieGoal:
-                updatedUser.dailyCalorieGoal,
-              proteinGoal_g: updatedUser.proteinGoal_g,
-              carbsGoal_g: updatedUser.carbsGoal_g,
-              fatGoal_g: updatedUser.fatGoal_g,
-            }
-          );
+          console.log("✅ User updated successfully with new goals:", {
+            dailyCalorieGoal: updatedUser.dailyCalorieGoal,
+            proteinGoal_g: updatedUser.proteinGoal_g,
+            carbsGoal_g: updatedUser.carbsGoal_g,
+            fatGoal_g: updatedUser.fatGoal_g,
+          });
 
           // Navigate back to profile with success
           router.back();
@@ -208,11 +215,9 @@ export default function OnboardingFlow() {
           const finalProfileData = {
             server_id: supabaseUser.id,
             email: supabaseUser.email,
-            name:
-              supabaseUser.user_metadata?.full_name ||
-              "Fitness User",
+            name: supabaseUser.user_metadata?.full_name || "Fitness User",
             gender: onboardingState.gender!,
-            dateOfBirth: onboardingState.age 
+            dateOfBirth: onboardingState.age
               ? new Date(
                   new Date().setFullYear(
                     new Date().getFullYear() - onboardingState.age
@@ -220,16 +225,11 @@ export default function OnboardingFlow() {
                 )
                   .toISOString()
                   .split("T")[0]
-              : new Date(
-                  new Date().setFullYear(
-                    new Date().getFullYear() - 25
-                  )
-                )
+              : new Date(new Date().setFullYear(new Date().getFullYear() - 25))
                   .toISOString()
                   .split("T")[0], // Fallback to age 25 if no age provided
             heightCm: onboardingState.heightCm!,
-            currentWeightKg:
-              onboardingState.currentWeightKg!,
+            currentWeightKg: onboardingState.currentWeightKg!,
             targetWeightKg:
               onboardingState.targetWeightKg ||
               onboardingState.currentWeightKg!,
@@ -237,9 +237,7 @@ export default function OnboardingFlow() {
             goalType: onboardingState.goalType!,
           };
 
-          const newUser = await createUser(
-            finalProfileData
-          );
+          const newUser = await createUser(finalProfileData);
 
           if (newUser) {
             // Update both stores with the new user data
@@ -254,10 +252,7 @@ export default function OnboardingFlow() {
           }
         }
       } catch (error) {
-        console.error(
-          "Failed to complete onboarding:",
-          error
-        );
+        console.error("Failed to complete onboarding:", error);
         Alert.alert(
           "Error",
           `There was a problem ${isEditMode ? "updating" : "saving"} your profile. Please try again.`
@@ -287,28 +282,9 @@ export default function OnboardingFlow() {
     <SafeAreaView className="flex-1 bg-white dark:bg-slate-900">
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Shared Header with Back Button and Progress Bar */}
-      <View className="mt-8 mb-6 flex-row items-center h-12">
-        {currentPage > 0 ? (
-          <Pressable
-            onPress={handleBack}
-            className="absolute left-6 z-10 p-3 bg-gray-100 dark:bg-slate-800 rounded-full"
-          >
-            <Feather
-              name="arrow-left"
-              size={28}
-              color={isDark ? "white" : "black"}
-            />
-          </Pressable>
-        ) : (
-          <View className="w-16 h-12" />
-        )}
-        <View className="flex-1 px-16">
-          <OnboardingProgressBar
-            progress={(currentPage + 1) / totalPages}
-          />
-        </View>
-        <View className="w-16 h-12" />
+      {/* Animated step progress at top */}
+      <View className="mt-6 mb-4">
+        <StepProgress current={currentPage} total={totalPages} />
       </View>
 
       <PagerView
@@ -316,35 +292,70 @@ export default function OnboardingFlow() {
         style={{ flex: 1 }}
         initialPage={0}
         scrollEnabled={false} // User must use the buttons
-        onPageSelected={(e) =>
-          setCurrentPage(e.nativeEvent.position)
-        }
+        onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
       >
         {onboardingSteps.map((StepComponent, index) => (
-          <View key={index} className="flex-1 px-6 pb-4">
+          <Animated.View
+            key={index}
+            className="flex-1 px-6 pb-4"
+            entering={FadeInUp.duration(350)}
+          >
             <StepComponent />
-          </View>
+          </Animated.View>
         ))}
       </PagerView>
 
-      {/* Shared Footer with "Continue" Button */}
-      <View className="px-6 py-6 border-t border-gray-200 dark:border-gray-800">
-        <Pressable
-          onPress={handleNext}
-          disabled={!canProceed() || isSubmitting}
-          className={`rounded-2xl p-5 ${!canProceed() || isSubmitting ? "bg-gray-300 dark:bg-gray-700" : "bg-green-500 active:bg-green-600"}`}
-        >
-          <Text className={`text-center text-xl font-bold ${!canProceed() || isSubmitting ? "text-gray-500" : "text-white"}`}>
-            {isSubmitting 
-              ? "Please wait..." 
-              : currentPage === totalPages - 1
-                ? isEditMode
-                  ? "Save Changes"
-                  : "Finish Setup"
-                : "Continue"
-            }
-          </Text>
-        </Pressable>
+      {/* Footer with Back + Continue */}
+      <View className="px-6 pb-6 pt-3 border-t border-gray-200 dark:border-gray-800">
+        <View className="flex-row gap-3">
+          <Pressable
+            onPress={handleBack}
+            disabled={currentPage === 0 || isSubmitting}
+            style={{ flex: 1, opacity: currentPage === 0 ? 0.5 : 1 }}
+          >
+            <View className="rounded-2xl p-4 bg-gray-200 dark:bg-slate-800 flex-row justify-center items-center">
+              <Feather
+                name="arrow-left"
+                size={18}
+                color={isDark ? "#E5E7EB" : "#1F2937"}
+              />
+              <Text
+                className="ml-2 text-base font-semibold"
+                style={{ color: isDark ? "#E5E7EB" : "#1F2937" }}
+              >
+                Back
+              </Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={handleNext}
+            disabled={!canProceed() || isSubmitting}
+            style={{ flex: 1 }}
+          >
+            <LinearGradient
+              colors={isDark ? ["#22C55E", "#10B981"] : ["#10B981", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text className="text-base font-bold" style={{ color: "white" }}>
+                {isSubmitting
+                  ? "Please wait..."
+                  : currentPage === totalPages - 1
+                    ? isEditMode
+                      ? "Save Changes"
+                      : "Finish Setup"
+                    : "Continue"}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );

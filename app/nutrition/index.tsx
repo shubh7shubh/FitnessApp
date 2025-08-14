@@ -7,6 +7,7 @@ import {
   StatusBar,
   Animated,
   Dimensions,
+  FlatList,
 } from "react-native";
 import React, {
   useState,
@@ -15,20 +16,20 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import { Stack, useRouter } from "expo-router";
-import PagerView, {
-  PagerViewOnPageSelectedEvent,
-} from "react-native-pager-view";
-import { format, addDays, isToday } from "date-fns";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import {
+  format,
+  addDays,
+  isToday,
+  startOfToday,
+  differenceInCalendarDays,
+  startOfDay,
+} from "date-fns";
 import { Feather } from "@expo/vector-icons";
 
 import { useAppStore } from "@/stores/appStore";
 import { COLORS } from "@/constants/theme";
-import {
-  CaloriesTab,
-  MacrosTab,
-  NutrientsTab,
-} from "@/modules/nutrition";
+import { CaloriesTab, MacrosTab, NutrientsTab } from "@/modules/nutrition";
 
 const HEADER_HEIGHT = 72;
 const TABS_HEIGHT = 50;
@@ -81,36 +82,31 @@ NutritionPage.displayName = "NutritionPage";
 
 // The main nutrition screen
 export default function NutritionScreen() {
-  const [currentDate, setCurrentDate] = useState(
-    new Date()
-  );
-  const [activeTab, setActiveTab] =
-    useState<TabType>("calories");
-  const pagerRef = useRef<PagerView>(null);
+  const params = useLocalSearchParams();
+  const dateParam = (params?.date as string) || undefined;
+  const parsedParamDate = useMemo(() => {
+    if (!dateParam) return null;
+    const valid = /^\d{4}-\d{2}-\d{2}$/.test(dateParam);
+    if (!valid) return null;
+    const [y, m, d] = dateParam.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  }, [dateParam]);
+
+  const [currentDate, setCurrentDate] = useState(parsedParamDate || new Date());
+  const [activeTab, setActiveTab] = useState<TabType>("calories");
+  const flatListRef = useRef<FlatList<Date>>(null);
   const colorScheme = useColorScheme() ?? "light";
   const colors = COLORS[colorScheme];
   const router = useRouter();
   const { currentUser } = useAppStore();
 
   // Animated values for smooth transitions
-  const headerTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
-  const tabsTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
-  const dateNavigatorTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
-  const contentTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
-  const tabIndicatorPosition = useRef(
-    new Animated.Value(0)
-  ).current;
-  const tabContentOpacity = useRef(
-    new Animated.Value(1)
-  ).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const tabsTranslateY = useRef(new Animated.Value(0)).current;
+  const dateNavigatorTranslateY = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
+  const tabContentOpacity = useRef(new Animated.Value(1)).current;
 
   // Tab configuration
   const tabs = [
@@ -123,16 +119,30 @@ export default function NutritionScreen() {
   const { width: screenWidth } = Dimensions.get("window");
   const tabWidth = screenWidth / tabs.length;
 
-  // Optimize: Create only 21 pages (10 days before, today, 10 days after)
-  const { dates, initialPage } = useMemo(() => {
-    const datesList = Array.from({ length: 21 }).map(
-      (_, i) => addDays(new Date(), i - 10)
+  // Build full date range from user join date to today (ascending)
+  const { dates, initialScrollIndex } = useMemo(() => {
+    const today = startOfToday();
+    const joinDateRaw: Date = currentUser?.createdAt
+      ? new Date(currentUser.createdAt)
+      : today;
+    const joinDate = startOfDay(joinDateRaw);
+    const totalDays = Math.max(
+      1,
+      differenceInCalendarDays(today, joinDate) + 1
+    );
+    const datesList = Array.from({ length: totalDays }, (_, i) =>
+      addDays(joinDate, i)
+    );
+    const target = parsedParamDate ? startOfDay(parsedParamDate) : today;
+    const index = Math.min(
+      datesList.length - 1,
+      Math.max(0, differenceInCalendarDays(target, joinDate))
     );
     return {
       dates: datesList,
-      initialPage: 10, // Index of today's date
+      initialScrollIndex: index,
     };
-  }, []);
+  }, [currentUser?.createdAt, parsedParamDate]);
 
   // Handle tab change with smooth animation
   const handleTabChange = useCallback(
@@ -165,55 +175,48 @@ export default function NutritionScreen() {
 
       setActiveTab(tab);
     },
-    [
-      activeTab,
-      tabIndicatorPosition,
-      tabContentOpacity,
-      tabs,
-    ]
+    [activeTab, tabIndicatorPosition, tabContentOpacity, tabs]
   );
 
-  // When the user swipes, this updates our state
-  const onPageSelected = useCallback(
-    (e: PagerViewOnPageSelectedEvent) => {
-      const newDate = dates[e.nativeEvent.position];
-      if (newDate) {
-        setCurrentDate(newDate);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ item: Date }> }) => {
+      if (viewableItems && viewableItems.length > 0) {
+        const firstVisible = viewableItems[0].item;
+        if (firstVisible) {
+          setCurrentDate(new Date(firstVisible));
+        }
       }
-    },
-    [dates]
-  );
+    }
+  ).current;
 
-  // When the user taps the arrows, this updates the state and moves the pager
+  // When arrows tapped, scroll FlatList
   const changeDate = useCallback(
     (offset: number) => {
-      if (!pagerRef.current) return;
-
       const currentIndex = dates.findIndex(
-        (d) =>
-          format(d, "yyyy-MM-dd") ===
-          format(currentDate, "yyyy-MM-dd")
+        (d) => format(d, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
       );
-
       if (currentIndex === -1) return;
-
       const newIndex = currentIndex + offset;
-
-      // Check bounds
       if (newIndex < 0 || newIndex >= dates.length) return;
-
       const newDate = dates[newIndex];
       setCurrentDate(newDate);
-      pagerRef.current.setPage(newIndex);
+      flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
     },
     [dates, currentDate]
   );
 
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: screenWidth,
+      offset: screenWidth * index,
+      index,
+    }),
+    [screenWidth]
+  );
+
   // Initialize tab indicator position
   useEffect(() => {
-    const initialTabIndex = tabs.findIndex(
-      (t) => t.id === activeTab
-    );
+    const initialTabIndex = tabs.findIndex((t) => t.id === activeTab);
     tabIndicatorPosition.setValue(initialTabIndex);
   }, []);
 
@@ -227,11 +230,7 @@ export default function NutritionScreen() {
         }}
       >
         <StatusBar
-          barStyle={
-            colorScheme === "dark"
-              ? "light-content"
-              : "dark-content"
-          }
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
           backgroundColor={colors.background}
         />
         <View
@@ -262,12 +261,8 @@ export default function NutritionScreen() {
       }}
     >
       <StatusBar
-        barStyle={
-          colorScheme === "dark"
-            ? "light-content"
-            : "dark-content"
-        }
-        backgroundColor={colors.background}
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={colors.surface}
         translucent={false}
       />
 
@@ -309,11 +304,7 @@ export default function NutritionScreen() {
               backgroundColor: colors.surfaceElevated,
             }}
           >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color={colors.text.primary}
-            />
+            <Feather name="arrow-left" size={18} color={colors.text.primary} />
           </Pressable>
 
           <Text
@@ -357,11 +348,8 @@ export default function NutritionScreen() {
               <Text
                 style={{
                   color:
-                    activeTab === tab.id
-                      ? "#007AFF"
-                      : colors.text.secondary,
-                  fontWeight:
-                    activeTab === tab.id ? "600" : "normal",
+                    activeTab === tab.id ? "#007AFF" : colors.text.secondary,
+                  fontWeight: activeTab === tab.id ? "600" : "normal",
                   fontSize: 14,
                 }}
               >
@@ -381,15 +369,11 @@ export default function NutritionScreen() {
             width: tabWidth,
             transform: [
               {
-                translateX:
-                  tabIndicatorPosition.interpolate({
-                    inputRange: [0, tabs.length - 1],
-                    outputRange: [
-                      0,
-                      (tabs.length - 1) * tabWidth,
-                    ],
-                    extrapolate: "clamp",
-                  }),
+                translateX: tabIndicatorPosition.interpolate({
+                  inputRange: [0, tabs.length - 1],
+                  outputRange: [0, (tabs.length - 1) * tabWidth],
+                  extrapolate: "clamp",
+                }),
               },
             ],
           }}
@@ -410,9 +394,7 @@ export default function NutritionScreen() {
           paddingVertical: 10,
           paddingHorizontal: 20,
           zIndex: 20,
-          transform: [
-            { translateY: dateNavigatorTranslateY },
-          ],
+          transform: [{ translateY: dateNavigatorTranslateY }],
         }}
       >
         <View className="flex-row items-center justify-between flex-1">
@@ -433,24 +415,16 @@ export default function NutritionScreen() {
           <View className="items-center">
             <Text
               style={{
-                color: isToday(currentDate)
-                  ? "#007AFF"
-                  : colors.text.primary,
-                fontWeight: isToday(currentDate)
-                  ? "700"
-                  : "600",
+                color: isToday(currentDate) ? "#007AFF" : colors.text.primary,
+                fontWeight: isToday(currentDate) ? "700" : "600",
               }}
               className="text-base"
             >
-              {isToday(currentDate)
-                ? "Today"
-                : format(currentDate, "EEEE")}
+              {isToday(currentDate) ? "Today" : format(currentDate, "EEEE")}
             </Text>
             <Text
               style={{
-                color: isToday(currentDate)
-                  ? "#007AFF"
-                  : colors.text.secondary,
+                color: isToday(currentDate) ? "#007AFF" : colors.text.secondary,
                 opacity: isToday(currentDate) ? 0.8 : 1,
               }}
               className="text-xs mt-0.5"
@@ -475,7 +449,7 @@ export default function NutritionScreen() {
         </View>
       </Animated.View>
 
-      {/* Content Area with PagerView */}
+      {/* Content Area with Horizontal FlatList pager */}
       <Animated.View
         style={{
           flex: 1,
@@ -486,36 +460,45 @@ export default function NutritionScreen() {
       >
         <View
           style={{
-            height:
-              HEADER_HEIGHT +
-              TABS_HEIGHT +
-              DATE_NAVIGATOR_HEIGHT,
+            height: HEADER_HEIGHT + TABS_HEIGHT + DATE_NAVIGATOR_HEIGHT,
           }}
         />
-        <PagerView
-          ref={pagerRef}
-          style={{ flex: 1 }}
-          initialPage={initialPage}
-          onPageSelected={onPageSelected}
-          overdrag={true}
-          scrollEnabled={true}
-        >
-          {dates.map((date, index) => (
+        <FlatList
+          ref={flatListRef}
+          data={dates}
+          keyExtractor={(item) => format(item, "yyyy-MM-dd")}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
             <View
-              key={format(date, "yyyy-MM-dd")}
               style={{
+                width: screenWidth,
                 flex: 1,
                 backgroundColor: colors.background,
               }}
             >
               <NutritionPage
-                dateString={format(date, "yyyy-MM-dd")}
+                dateString={format(item, "yyyy-MM-dd")}
                 colorScheme={colorScheme}
                 activeTab={activeTab}
               />
             </View>
-          ))}
-        </PagerView>
+          )}
+          initialScrollIndex={initialScrollIndex}
+          getItemLayout={getItemLayout}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 51 }}
+          windowSize={3}
+          initialNumToRender={1}
+          maxToRenderPerBatch={3}
+          removeClippedSubviews={false}
+          onScrollToIndexFailed={({ index }) => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({ index, animated: false });
+            }, 100);
+          }}
+        />
       </Animated.View>
     </SafeAreaView>
   );

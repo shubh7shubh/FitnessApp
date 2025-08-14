@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useOnboardingStore } from "../../store";
 import { MetricInputProps } from "../../types";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 // A reusable input field component for this screen
 const MetricInput = ({
@@ -44,13 +45,10 @@ const MetricInput = ({
 export const MetricsScreen = () => {
   const isDark = useColorScheme() === "dark";
   // Get the update function and the current values from the store
-  const { age, heightCm, currentWeightKg, setData } =
-    useOnboardingStore();
+  const { age, heightCm, currentWeightKg, setData } = useOnboardingStore();
 
   // Use local state for the text inputs. This is more performant than updating the global store on every keystroke.
-  const [localAge, setLocalAge] = useState(
-    age ? String(age) : ""
-  );
+  const [localAge, setLocalAge] = useState(age ? String(age) : "");
   const [localHeight, setLocalHeight] = useState(
     heightCm ? String(heightCm) : ""
   );
@@ -64,23 +62,19 @@ export const MetricsScreen = () => {
     // Convert string inputs to numbers before saving to the global store
     setData({
       age: localAge ? parseInt(localAge, 10) : null,
-      heightCm: localHeight
-        ? parseInt(localHeight, 10)
-        : null,
-      currentWeightKg: localWeight
-        ? parseFloat(localWeight)
-        : null,
+      heightCm: localHeight ? parseInt(localHeight, 10) : null,
+      currentWeightKg: localWeight ? parseFloat(localWeight) : null,
     });
   }, [localAge, localHeight, localWeight]);
 
   return (
-    <KeyboardAvoidingView 
-      className="flex-1" 
+    <KeyboardAvoidingView
+      className="flex-1"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView 
-        className="flex-1" 
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="px-6">
@@ -91,27 +85,33 @@ export const MetricsScreen = () => {
             Help us personalize your fitness journey
           </Text>
 
-          <MetricInput
-            label="Age"
-            value={localAge}
-            onChangeText={setLocalAge}
-            unit="years"
-            keyboardType="numeric"
-          />
-          <MetricInput
-            label="Height"
-            value={localHeight}
-            onChangeText={setLocalHeight}
-            unit="cm"
-            keyboardType="numeric"
-          />
-          <MetricInput
-            label="Current Weight"
-            value={localWeight}
-            onChangeText={setLocalWeight}
-            unit="kg"
-            keyboardType="decimal-pad"
-          />
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <MetricInput
+              label="Age"
+              value={localAge}
+              onChangeText={setLocalAge}
+              unit="years"
+              keyboardType="numeric"
+            />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(300).delay(120)}>
+            <MetricInput
+              label="Height"
+              value={localHeight}
+              onChangeText={setLocalHeight}
+              unit="cm"
+              keyboardType="numeric"
+            />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(300).delay(240)}>
+            <MetricInput
+              label="Current Weight"
+              value={localWeight}
+              onChangeText={setLocalWeight}
+              unit="kg"
+              keyboardType="decimal-pad"
+            />
+          </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

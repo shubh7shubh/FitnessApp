@@ -9,9 +9,7 @@ import { DiaryEntry } from "@/db/models/DiaryEntry";
 import { Food } from "@/db/models/Food";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/modules/home/hooks/useTheme";
-import MealSection, {
-  DisplayFoodItem,
-} from "./MealSection";
+import MealSection, { DisplayFoodItem } from "./MealSection";
 import { MealType } from "@/modules/nutrition/types";
 
 // Define the props our component will receive from its parent
@@ -29,9 +27,7 @@ const BaseDiaryList = ({
   entries,
   dateString,
 }: InputProps & ObservableProps) => {
-  const [foodsMap, setFoodsMap] = useState<
-    Record<string, Food>
-  >({});
+  const [foodsMap, setFoodsMap] = useState<Record<string, Food>>({});
   const { colors, isDark } = useTheme();
   const router = useRouter();
 
@@ -40,9 +36,7 @@ const BaseDiaryList = ({
     const loadFoods = async () => {
       if (entries.length === 0) return;
 
-      const foodIds = [
-        ...new Set(entries.map((e) => e.foodId)),
-      ];
+      const foodIds = [...new Set(entries.map((e) => e.foodId))];
       console.log(`🔍 Loading foods for IDs:`, foodIds);
 
       try {
@@ -71,20 +65,17 @@ const BaseDiaryList = ({
 
   // Debug logging
   useEffect(() => {
-    console.log(
-      `📊 DiaryList received entries for ${dateString}:`,
-      {
-        count: entries.length,
-        entries: entries.map((e) => ({
-          id: e.id,
-          mealType: e.mealType,
-          calories: e.calories,
-          foodId: e.foodId,
-          foodName: foodsMap[e.foodId]?.name,
-          servings: e.servings,
-        })),
-      }
-    );
+    console.log(`📊 DiaryList received entries for ${dateString}:`, {
+      count: entries.length,
+      entries: entries.map((e) => ({
+        id: e.id,
+        mealType: e.mealType,
+        calories: e.calories,
+        foodId: e.foodId,
+        foodName: foodsMap[e.foodId]?.name,
+        servings: e.servings,
+      })),
+    });
   }, [entries, dateString, foodsMap]);
 
   // Process the raw WDB models into simple data for the UI
@@ -123,20 +114,20 @@ const BaseDiaryList = ({
       })),
   };
 
-  console.log(
-    `🍽️ Processed meals data for ${dateString}:`,
-    {
-      breakfast: mealsData.breakfast.length,
-      lunch: mealsData.lunch.length,
-      dinner: mealsData.dinner.length,
-      snacks: mealsData.snacks.length,
-    }
-  );
+  console.log(`🍽️ Processed meals data for ${dateString}:`, {
+    breakfast: mealsData.breakfast.length,
+    lunch: mealsData.lunch.length,
+    dinner: mealsData.dinner.length,
+    snacks: mealsData.snacks.length,
+  });
 
   // Placeholder functions for button actions
   const handleNutritionPress = () => {
     console.log("Nutrition button pressed");
-    router.push("/nutrition" as any);
+    router.push({
+      pathname: "/nutrition",
+      params: { date: dateString },
+    } as any);
   };
 
   const handleNotesPress = () => {
@@ -194,11 +185,7 @@ const BaseDiaryList = ({
                 backgroundColor: "#3B82F6" + "20",
               }}
             >
-              <Ionicons
-                name="pie-chart"
-                size={14}
-                color="#3B82F6"
-              />
+              <Ionicons name="pie-chart" size={14} color="#3B82F6" />
             </View>
             <Text
               className="text-sm font-semibold"
@@ -225,11 +212,7 @@ const BaseDiaryList = ({
                 backgroundColor: "#F59E0B" + "20",
               }}
             >
-              <Ionicons
-                name="document-text"
-                size={14}
-                color="#F59E0B"
-              />
+              <Ionicons name="document-text" size={14} color="#F59E0B" />
             </View>
             <Text
               className="text-sm font-semibold"
@@ -247,7 +230,7 @@ const BaseDiaryList = ({
           onPress={handleCompleteDiaryPress}
           className="rounded-xl p-4 flex-row items-center justify-center gap-3"
           style={{
-            backgroundColor: isDark ? "#00D4AA" : "#059669",
+            backgroundColor: isDark ? "#047857" : "#059669",
           }}
         >
           <View
@@ -256,11 +239,7 @@ const BaseDiaryList = ({
               backgroundColor: "rgba(255,255,255,0.25)",
             }}
           >
-            <Ionicons
-              name="checkmark"
-              size={12}
-              color="white"
-            />
+            <Ionicons name="checkmark" size={12} color="white" />
           </View>
           <Text
             className="text-base font-bold"

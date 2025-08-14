@@ -1,11 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Animated,
-  Easing,
-} from "react-native";
+import { View, Text, Pressable, Animated, Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useHomeStore } from "../store/homeStore";
@@ -28,12 +22,9 @@ const MacroProgressBar: React.FC<MacroProgressBarProps> = ({
   color,
   isDark,
 }) => {
-  const progress =
-    goal > 0 ? Math.min(current / goal, 1) : 0;
+  const progress = goal > 0 ? Math.min(current / goal, 1) : 0;
   const percentage = Math.round(progress * 100);
-  const animatedWidth = useRef(
-    new Animated.Value(0)
-  ).current;
+  const animatedWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(animatedWidth, {
@@ -123,9 +114,7 @@ export const HeroSection: React.FC = () => {
   const { todayStats } = useHomeStore();
   const { isDark } = useTheme();
   const router = useRouter();
-  const slideUpAnim = useRef(
-    new Animated.Value(50)
-  ).current;
+  const slideUpAnim = useRef(new Animated.Value(50)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -150,8 +139,7 @@ export const HeroSection: React.FC = () => {
   );
   const calorieProgress =
     todayStats.caloriesGoal > 0
-      ? todayStats.caloriesConsumed /
-        todayStats.caloriesGoal
+      ? todayStats.caloriesConsumed / todayStats.caloriesGoal
       : 0;
 
   const macros = [
@@ -175,10 +163,9 @@ export const HeroSection: React.FC = () => {
     },
   ];
 
-  const gradientColors: [string, string, ...string[]] =
-    isDark
-      ? ["#1E293B", "#0F172A", "#020617"]
-      : ["#FFFFFF", "#F8FAFC", "#F1F5F9"];
+  const gradientColors: [string, string, ...string[]] = isDark
+    ? ["#1E293B", "#0F172A", "#020617"]
+    : ["#FFFFFF", "#F8FAFC", "#F1F5F9"];
 
   return (
     <Animated.View
@@ -211,6 +198,7 @@ export const HeroSection: React.FC = () => {
             borderColor: isDark
               ? "rgba(148,163,184,0.2)"
               : "rgba(148,163,184,0.3)",
+            overflow: "hidden",
           }}
         >
           {/* Header Section - More Compact */}
@@ -314,12 +302,8 @@ export const HeroSection: React.FC = () => {
                   progress={calorieProgress}
                   size={110}
                   strokeWidth={8}
-                  backgroundColor={
-                    isDark ? "#374151" : "#E2E8F0"
-                  }
-                  progressColor={
-                    isDark ? "#34D399" : "#10B981"
-                  }
+                  backgroundColor={isDark ? "#374151" : "#E2E8F0"}
+                  progressColor={isDark ? "#34D399" : "#10B981"}
                   glowEffect={true}
                   isDark={isDark}
                 />
@@ -336,9 +320,7 @@ export const HeroSection: React.FC = () => {
                       color: isDark ? "#F8FAFC" : "#0F172A",
                     }}
                   >
-                    {Math.round(
-                      todayStats.caloriesConsumed
-                    )}
+                    {Math.round(todayStats.caloriesConsumed)}
                   </Text>
                   <Text
                     style={{
@@ -362,12 +344,8 @@ export const HeroSection: React.FC = () => {
                   paddingVertical: 6,
                   borderRadius: 20,
                   borderWidth: 1,
-                  borderColor: isDark
-                    ? "#34D399"
-                    : "#10B981",
-                  shadowColor: isDark
-                    ? "#34D399"
-                    : "#10B981",
+                  borderColor: isDark ? "#34D399" : "#10B981",
+                  shadowColor: isDark ? "#34D399" : "#10B981",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.2,
                   shadowRadius: 4,
@@ -409,9 +387,8 @@ export const HeroSection: React.FC = () => {
               justifyContent: "space-around",
               paddingHorizontal: 10,
               paddingVertical: 2,
-              backgroundColor: isDark
-                ? "rgba(148,163,184,0.08)"
-                : "rgba(148,163,184,0.06)",
+              // make transparent to avoid square-looking bottom
+              backgroundColor: "transparent",
               borderTopWidth: 1,
               borderTopColor: isDark
                 ? "rgba(148,163,184,0.1)"
@@ -431,9 +408,7 @@ export const HeroSection: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 6,
-                  shadowColor: isDark
-                    ? "#34D399"
-                    : "#10B981",
+                  shadowColor: isDark ? "#34D399" : "#10B981",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.15,
                   shadowRadius: 4,
@@ -469,9 +444,7 @@ export const HeroSection: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 6,
-                  shadowColor: isDark
-                    ? "#60A5FA"
-                    : "#3B82F6",
+                  shadowColor: isDark ? "#60A5FA" : "#3B82F6",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.15,
                   shadowRadius: 4,
@@ -490,10 +463,7 @@ export const HeroSection: React.FC = () => {
                   color: isDark ? "#F8FAFC" : "#0F172A",
                 }}
               >
-                {(todayStats.waterConsumed / 1000).toFixed(
-                  1
-                )}
-                L
+                {(todayStats.waterConsumed / 1000).toFixed(1)}L
               </Text>
             </View>
 
@@ -510,9 +480,7 @@ export const HeroSection: React.FC = () => {
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 6,
-                  shadowColor: isDark
-                    ? "#F87171"
-                    : "#EF4444",
+                  shadowColor: isDark ? "#F87171" : "#EF4444",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.15,
                   shadowRadius: 4,

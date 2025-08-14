@@ -1,14 +1,8 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
   FlatList,
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   useColorScheme,
@@ -36,45 +30,37 @@ export default function FeedsScreen() {
   const { currentUser } = useAppStore();
 
   // Animation and scroll detection
-  const headerTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef("");
   const headerHeight = 80 + insets.top;
 
-  const fetchPosts = useCallback(
-    async (isRefreshing = false) => {
-      if (!isRefreshing) {
-        setIsLoading(true);
+  const fetchPosts = useCallback(async (isRefreshing = false) => {
+    if (!isRefreshing) {
+      setIsLoading(true);
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setPosts([]);
+        throw new Error("User not found");
       }
 
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setPosts([]);
-          throw new Error("User not found");
-        }
+      const { data, error } = await supabase.rpc("get_feed", {
+        user_id_to_check: user.id,
+      });
 
-        const { data, error } = await supabase.rpc(
-          "get_feed",
-          {
-            user_id_to_check: user.id,
-          }
-        );
-
-        if (error) throw error;
-        setPosts(data || []);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchPosts();
@@ -85,10 +71,7 @@ export default function FeedsScreen() {
         "postgres_changes",
         { event: "*", schema: "public", table: "posts" },
         (payload) => {
-          console.log(
-            "Real-time change received!",
-            payload
-          );
+          console.log("Real-time change received!", payload);
           fetchPosts();
         }
       )
@@ -100,11 +83,8 @@ export default function FeedsScreen() {
   }, [fetchPosts, currentUser]);
 
   // Handle scroll with direction detection
-  const handleScroll = (
-    event: NativeSyntheticEvent<NativeScrollEvent>
-  ) => {
-    const currentScrollY =
-      event.nativeEvent.contentOffset.y;
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
     const diff = currentScrollY - lastScrollY.current;
 
     // Only trigger animation after scrolling at least 5 pixels
@@ -150,15 +130,17 @@ export default function FeedsScreen() {
       ]}
     >
       <View style={styles.headerContent}>
-        <Text
-          style={[
-            styles.headerTitle,
-            { color: colors.text.primary },
-          ]}
-        >
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
           Feed
         </Text>
-        <Pressable onPress={() => router.push("/create")}>
+        <Pressable
+          onPress={() => router.push("/create")}
+          style={{
+            padding: 6,
+            borderRadius: 10,
+            backgroundColor: colors.surface,
+          }}
+        >
           <Ionicons
             name="add-circle-outline"
             size={32}
@@ -169,46 +151,111 @@ export default function FeedsScreen() {
     </Animated.View>
   );
 
-  // Show loading indicator on first load
-  if (isLoading && posts.length === 0) {
+  // Skeleton placeholder while loading
+  const SkeletonPost: React.FC = () => {
+    const pulse = useRef(new Animated.Value(0.3)).current;
+    React.useEffect(() => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, {
+            toValue: 1,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulse, {
+            toValue: 0.3,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }, [pulse]);
+
     return (
       <View
         style={[
-          styles.container,
-          styles.center,
-          { backgroundColor: colors.background },
+          styles.skeletonCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
         ]}
       >
+        <View style={styles.skeletonHeaderRow}>
+          <Animated.View
+            style={[
+              styles.skeletonAvatar,
+              { opacity: pulse, backgroundColor: colors.border },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonName,
+              { opacity: pulse, backgroundColor: colors.border },
+            ]}
+          />
+        </View>
+        <Animated.View
+          style={[
+            styles.skeletonMedia,
+            { opacity: pulse, backgroundColor: colors.border },
+          ]}
+        />
+        <View style={styles.skeletonFooterRow}>
+          <Animated.View
+            style={[
+              styles.skeletonIcon,
+              { opacity: pulse, backgroundColor: colors.border },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonIcon,
+              { opacity: pulse, backgroundColor: colors.border },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonText,
+              { opacity: pulse, backgroundColor: colors.border },
+            ]}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  // Show skeleton list on first load
+  if (isLoading && posts.length === 0) {
+    const placeholders = Array.from({ length: 6 }).map((_, i) => ({
+      id: `skeleton-${i}`,
+    }));
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar
-          barStyle={
-            colorScheme === "dark"
-              ? "light-content"
-              : "dark-content"
-          }
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
           backgroundColor="transparent"
           translucent={true}
         />
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
+        <Stack.Screen options={{ headerShown: false }} />
+        <AnimatedHeader />
+        <FlatList
+          data={placeholders}
+          keyExtractor={(item) => item.id}
+          renderItem={() => <SkeletonPost />}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingTop: headerHeight },
+          ]}
+          showsVerticalScrollIndicator={false}
         />
       </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
-        barStyle={
-          colorScheme === "dark"
-            ? "light-content"
-            : "dark-content"
-        }
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent={true}
       />
@@ -254,6 +301,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    overflow: "hidden",
     zIndex: 1000,
     borderBottomWidth: 1,
     shadowColor: "#000",
@@ -279,5 +327,51 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 100,
+  },
+  skeletonCard: {
+    marginHorizontal: 12,
+    marginVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  skeletonHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+  },
+  skeletonAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+  },
+  skeletonName: {
+    height: 14,
+    borderRadius: 7,
+    flex: 1,
+  },
+  skeletonMedia: {
+    height: 220,
+    marginHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  skeletonFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  skeletonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  skeletonText: {
+    height: 12,
+    borderRadius: 6,
+    flex: 0.3,
   },
 });
