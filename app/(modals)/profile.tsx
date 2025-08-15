@@ -18,35 +18,30 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context"; // Add this import
 import { signout } from "@/db/actions/authActions";
+import { Modal, Animated } from "react-native";
 import { updateUser } from "@/db/actions/userActions";
 
 export default function Profile() {
-  const {
-    currentUser,
-    logout,
-    selectedGoal,
-    supabaseProfile,
-  } = useAppStore();
+  const { currentUser, logout, selectedGoal, supabaseProfile } = useAppStore();
   const { profile, goals } = useUserStore();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const insets = useSafeAreaInsets(); // Add this hook
+  const insets = useSafeAreaInsets();
+  const [showSignOut, setShowSignOut] = useState(false);
+  const scale = useState(new Animated.Value(0.9))[0];
 
   if (!currentUser) return <Loader />;
 
-  const displayName =
-    supabaseProfile?.full_name || currentUser.name;
-  const avatarUrl =
-    supabaseProfile?.avatar_url || currentUser.avatarUrl;
+  const displayName = supabaseProfile?.full_name || currentUser.name;
+  const avatarUrl = supabaseProfile?.avatar_url || currentUser.avatarUrl;
   const userAge = currentUser.age;
 
   // Calculate BMI if we have height and weight
   const bmi =
     currentUser.heightCm && currentUser.currentWeightKg
       ? (
-          currentUser.currentWeightKg /
-          Math.pow(currentUser.heightCm / 100, 2)
+          currentUser.currentWeightKg / Math.pow(currentUser.heightCm / 100, 2)
         ).toFixed(1)
       : null;
 
@@ -69,25 +64,25 @@ export default function Profile() {
     router.push("/onboarding?edit=true");
   };
 
-  const handleSignOut = () => {
-    Alert.alert(
-      "Confirm Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            await signout();
-          },
-        },
-      ]
-    );
+  const openSignOut = () => {
+    setShowSignOut(true);
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 70,
+    }).start();
   };
+  const closeSignOut = () => {
+    Animated.timing(scale, {
+      toValue: 0.9,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setShowSignOut(false);
+    });
+  };
+  const handleSignOut = () => openSignOut();
 
   const styles = StyleSheet.create({
     container: {
@@ -394,21 +389,10 @@ export default function Profile() {
             style={styles.headerButton}
             onPress={handleEditProfile}
           >
-            <Ionicons
-              name="create-outline"
-              size={20}
-              color={colors.primary}
-            />
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleSignOut}
-          >
-            <Ionicons
-              name="log-out-outline"
-              size={20}
-              color={colors.error}
-            />
+          <TouchableOpacity style={styles.headerButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -434,26 +418,16 @@ export default function Profile() {
             </View>
 
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>
-                {displayName}
-              </Text>
+              <Text style={styles.userName}>{displayName}</Text>
               <Text style={styles.userDetails}>
-                {currentUser.gender
-                  .charAt(0)
-                  .toUpperCase() +
+                {currentUser.gender.charAt(0).toUpperCase() +
                   currentUser.gender.slice(1)}{" "}
-                •{" "}
-                {userAge
-                  ? `${userAge} years old`
-                  : "Age not set"}
+                • {userAge ? `${userAge} years old` : "Age not set"}
               </Text>
               {selectedGoal && (
                 <View style={styles.goalBadge}>
                   <Text style={styles.goalText}>
-                    🎯{" "}
-                    {selectedGoal
-                      .replace("_", " ")
-                      .toUpperCase()}
+                    🎯 {selectedGoal.replace("_", " ").toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -463,29 +437,21 @@ export default function Profile() {
           {/* STATS ROW */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {currentUser.heightCm}
-              </Text>
-              <Text style={styles.statLabel}>
-                Height (cm)
-              </Text>
+              <Text style={styles.statValue}>{currentUser.heightCm}</Text>
+              <Text style={styles.statLabel}>Height (cm)</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
                 {currentUser.currentWeightKg}
               </Text>
-              <Text style={styles.statLabel}>
-                Weight (kg)
-              </Text>
+              <Text style={styles.statLabel}>Weight (kg)</Text>
             </View>
             {bmi && (
               <>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {bmi}
-                  </Text>
+                  <Text style={styles.statValue}>{bmi}</Text>
                   <Text style={styles.statLabel}>BMI</Text>
                 </View>
               </>
@@ -496,14 +462,8 @@ export default function Profile() {
         {/* FITNESS GOALS CARD */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Fitness Journey
-            </Text>
-            <Ionicons
-              name="fitness-outline"
-              size={24}
-              color={colors.primary}
-            />
+            <Text style={styles.sectionTitle}>Fitness Journey</Text>
+            <Ionicons name="fitness-outline" size={24} color={colors.primary} />
           </View>
 
           <View style={styles.goalItem}>
@@ -523,9 +483,7 @@ export default function Profile() {
                       ? "Weight Maintenance"
                       : "Muscle Gain"}
                 </Text>
-                <Text style={styles.goalDescription}>
-                  Primary goal
-                </Text>
+                <Text style={styles.goalDescription}>Primary goal</Text>
               </View>
             </View>
             <Text style={styles.goalStatus}>Active</Text>
@@ -535,17 +493,13 @@ export default function Profile() {
             <View style={styles.goalInfo}>
               <Text style={styles.goalEmoji}>🏃‍♂️</Text>
               <View style={styles.goalDetails}>
-                <Text style={styles.goalName}>
-                  Activity Level
-                </Text>
+                <Text style={styles.goalName}>Activity Level</Text>
                 <Text style={styles.goalDescription}>
                   {currentUser.activityLevel
                     .replace("_", " ")
                     .charAt(0)
                     .toUpperCase() +
-                    currentUser.activityLevel
-                      .replace("_", " ")
-                      .slice(1)}
+                    currentUser.activityLevel.replace("_", " ").slice(1)}
                 </Text>
               </View>
             </View>
@@ -556,9 +510,7 @@ export default function Profile() {
         {goals && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Daily Nutrition Goals
-              </Text>
+              <Text style={styles.sectionTitle}>Daily Nutrition Goals</Text>
               <Ionicons
                 name="nutrition-outline"
                 size={24}
@@ -575,16 +527,9 @@ export default function Profile() {
                       { backgroundColor: "#EF4444" },
                     ]}
                   />
-                  <Text style={styles.nutritionLabel}>
-                    Calories
-                  </Text>
+                  <Text style={styles.nutritionLabel}>Calories</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.nutritionValue,
-                    { color: "#EF4444" },
-                  ]}
-                >
+                <Text style={[styles.nutritionValue, { color: "#EF4444" }]}>
                   {goals.dailyCalorieGoal} kcal
                 </Text>
               </View>
@@ -599,16 +544,9 @@ export default function Profile() {
                       { backgroundColor: "#3B82F6" },
                     ]}
                   />
-                  <Text style={styles.nutritionLabel}>
-                    Protein
-                  </Text>
+                  <Text style={styles.nutritionLabel}>Protein</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.nutritionValue,
-                    { color: "#3B82F6" },
-                  ]}
-                >
+                <Text style={[styles.nutritionValue, { color: "#3B82F6" }]}>
                   {goals.proteinGoal_g}g
                 </Text>
               </View>
@@ -623,16 +561,9 @@ export default function Profile() {
                       { backgroundColor: "#F59E0B" },
                     ]}
                   />
-                  <Text style={styles.nutritionLabel}>
-                    Carbs
-                  </Text>
+                  <Text style={styles.nutritionLabel}>Carbs</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.nutritionValue,
-                    { color: "#F59E0B" },
-                  ]}
-                >
+                <Text style={[styles.nutritionValue, { color: "#F59E0B" }]}>
                   {goals.carbsGoal_g}g
                 </Text>
               </View>
@@ -647,16 +578,9 @@ export default function Profile() {
                       { backgroundColor: "#8B5CF6" },
                     ]}
                   />
-                  <Text style={styles.nutritionLabel}>
-                    Fat
-                  </Text>
+                  <Text style={styles.nutritionLabel}>Fat</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.nutritionValue,
-                    { color: "#8B5CF6" },
-                  ]}
-                >
+                <Text style={[styles.nutritionValue, { color: "#8B5CF6" }]}>
                   {goals.fatGoal_g}g
                 </Text>
               </View>
@@ -666,9 +590,7 @@ export default function Profile() {
 
         {/* ACTIONS CARD */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>
-            Quick Actions
-          </Text>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
 
           <TouchableOpacity
             style={styles.actionButton}
@@ -680,9 +602,7 @@ export default function Profile() {
                 size={20}
                 color={colors.primary}
               />
-              <Text style={styles.actionButtonText}>
-                Edit Profile & Goals
-              </Text>
+              <Text style={styles.actionButtonText}>Edit Profile & Goals</Text>
             </View>
           </TouchableOpacity>
 
@@ -693,9 +613,7 @@ export default function Profile() {
                 size={20}
                 color={colors.textSecondary}
               />
-              <Text style={styles.menuItemText}>
-                Notifications
-              </Text>
+              <Text style={styles.menuItemText}>Notifications</Text>
             </View>
             <Ionicons
               name="chevron-forward"
@@ -711,9 +629,7 @@ export default function Profile() {
                 size={20}
                 color={colors.textSecondary}
               />
-              <Text style={styles.menuItemText}>
-                Progress Analytics
-              </Text>
+              <Text style={styles.menuItemText}>Progress Analytics</Text>
             </View>
             <Ionicons
               name="chevron-forward"
@@ -729,9 +645,7 @@ export default function Profile() {
                 size={20}
                 color={colors.textSecondary}
               />
-              <Text style={styles.menuItemText}>
-                Help & Support
-              </Text>
+              <Text style={styles.menuItemText}>Help & Support</Text>
             </View>
             <Ionicons
               name="chevron-forward"
@@ -745,14 +659,8 @@ export default function Profile() {
             onPress={handleSignOut}
           >
             <View style={styles.menuItemLeft}>
-              <Ionicons
-                name="log-out-outline"
-                size={20}
-                color={colors.error}
-              />
-              <Text style={styles.signOutText}>
-                Sign Out
-              </Text>
+              <Ionicons name="log-out-outline" size={20} color={colors.error} />
+              <Text style={styles.signOutText}>Sign Out</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -760,6 +668,98 @@ export default function Profile() {
         {/* BOTTOM SPACING */}
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Custom Sign Out Modal */}
+      <Modal
+        visible={showSignOut}
+        transparent
+        animationType="fade"
+        onRequestClose={closeSignOut}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <Animated.View
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              borderRadius: 20,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 20,
+              transform: [{ scale }],
+            }}
+          >
+            <View style={{ marginBottom: 10 }}>
+              <Text
+                style={{
+                  color: colors.text,
+                  fontSize: 18,
+                  fontWeight: "700",
+                  textAlign: "center",
+                }}
+              >
+                Sign out?
+              </Text>
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 14,
+                  textAlign: "center",
+                  marginTop: 6,
+                }}
+              >
+                You will need to log in again to access your data.
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={closeSignOut}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.surfaceLight,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.text, fontWeight: "600" }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await signout();
+                  } finally {
+                    closeSignOut();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.error,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "700" }}>
+                  Sign Out
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }

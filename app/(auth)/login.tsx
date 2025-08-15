@@ -5,6 +5,7 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { Stack } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -34,17 +35,14 @@ export default function LoginScreen() {
       console.log("ID token:", idToken);
 
       if (!idToken) {
-        throw new Error(
-          "Google Sign-In failed: No ID token was returned."
-        );
+        throw new Error("Google Sign-In failed: No ID token was returned.");
       }
 
       // 3. Use the received ID token to sign in with Supabase.
-      const { data, error } =
-        await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-        });
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: idToken,
+      });
 
       if (error) {
         // If Supabase returns an error, throw it to be caught below.
@@ -54,16 +52,11 @@ export default function LoginScreen() {
       // If we reach here, the sign-in was successful.
       // The `onAuthStateChange` listener in your RootLayout will now take over
       // and handle the rest of the logic (checking WatermelonDB, navigation, etc.).
-      console.log(
-        "✅ Successfully signed in with Supabase:",
-        data.user?.email
-      );
+      console.log("✅ Successfully signed in with Supabase:", data.user?.email);
     } catch (error: any) {
       if (error.code === "SIGN_IN_CANCELLED") {
         // This is a normal event, not an error.
-        console.log(
-          "User cancelled the Google Sign-In flow."
-        );
+        console.log("User cancelled the Google Sign-In flow.");
       } else {
         // For all other errors, show an alert.
         console.error("Authentication error:", error);
@@ -81,12 +74,15 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 justify-center items-center bg-gray-900 p-6">
       <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#111827"
+        translucent={false}
+      />
 
       <View className="items-center mb-16">
         {/* You can add a logo here */}
-        <Text className="text-5xl font-extrabold text-white">
-          FitNext
-        </Text>
+        <Text className="text-5xl font-extrabold text-white">FitNext</Text>
         <Text className="text-lg text-gray-400 mt-3">
           Your ultimate fitness partner
         </Text>
@@ -102,11 +98,7 @@ export default function LoginScreen() {
           <ActivityIndicator color="#1F2937" />
         ) : (
           <>
-            <FontAwesome5
-              name="google"
-              size={20}
-              color="#1F2937"
-            />
+            <FontAwesome5 name="google" size={20} color="#1F2937" />
             <Text className="text-gray-900 text-lg font-bold ml-4">
               Sign in with Google
             </Text>
@@ -115,8 +107,7 @@ export default function LoginScreen() {
       </Pressable>
 
       <Text className="text-gray-600 text-xs text-center mt-8 px-4">
-        By continuing, you agree to our Terms of Service and
-        Privacy Policy.
+        By continuing, you agree to our Terms of Service and Privacy Policy.
       </Text>
     </View>
   );

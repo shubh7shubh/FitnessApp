@@ -49,29 +49,30 @@ const BaseMacrosTab = ({
         ? [
             {
               value: totals.carbs,
-              color: "#1ABC9C", // Teal/Turquoise like in your image
-              text: `${Math.round((totals.carbs / totalMacros) * 100)}%`,
-              textColor: "black",
-              textSize: 12,
-              fontWeight: "bold",
+              color: "#1ABC9C",
+              percent: (totals.carbs / totalMacros) * 100,
             },
             {
               value: totals.fat,
-              color: "#9B59B6", // Purple like in your image
-              text: `${Math.round((totals.fat / totalMacros) * 100)}%`,
-              textColor: "black",
-              textSize: 12,
-              fontWeight: "bold",
+              color: "#9B59B6",
+              percent: (totals.fat / totalMacros) * 100,
             },
             {
               value: totals.protein,
-              color: "#F39C12", // Orange like in your image
-              text: `${Math.round((totals.protein / totalMacros) * 100)}%`,
-              textColor: "black",
-              textSize: 12,
-              fontWeight: "bold",
+              color: "#F39C12",
+              percent: (totals.protein / totalMacros) * 100,
             },
-          ].filter((item) => item.value > 0)
+          ]
+            .filter((item) => item.value > 0)
+            .map((s) => ({
+              value: s.value,
+              color: s.color,
+              // Hide text inside slices smaller than 8%
+              text: s.percent >= 8 ? `${Math.round(s.percent)}%` : "",
+              textColor: colors.text.primary,
+              textSize: 11,
+              fontWeight: "bold",
+            }))
         : [];
 
     // Prepare breakdown data
@@ -142,22 +143,61 @@ const BaseMacrosTab = ({
           marginBottom: 16,
         }}
       >
-        {/* Center the pie chart */}
+        {/* Center the pie chart; use callouts if slices are too small */}
         <View style={{ alignItems: "center", marginBottom: 20 }}>
-          <PieChart
-            data={pieData}
-            radius={80}
-            innerRadius={0}
-            strokeWidth={2}
-            strokeColor={colors.background}
-            isAnimated
-            animationDuration={800}
-            showText
-            textColor="black"
-            textSize={16}
-            fontWeight="bold"
-            showTextBackground={false}
-          />
+          {totalMacros < 5 ? (
+            <View style={{ alignItems: "center" }}>
+              <PieChart
+                data={pieData}
+                radius={80}
+                innerRadius={0}
+                showText={false}
+                isAnimated
+                animationDuration={700}
+              />
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  marginTop: 8,
+                  fontWeight: "600",
+                }}
+              >
+                {Math.round(
+                  (diaryEntries.reduce((a, e) => a + e.carbs_g, 0) /
+                    totalMacros) *
+                    100
+                ) || 0}
+                % carbs •{" "}
+                {Math.round(
+                  (diaryEntries.reduce((a, e) => a + e.fat_g, 0) /
+                    totalMacros) *
+                    100
+                ) || 0}
+                % fat •{" "}
+                {Math.round(
+                  (diaryEntries.reduce((a, e) => a + e.protein_g, 0) /
+                    totalMacros) *
+                    100
+                ) || 0}
+                % protein
+              </Text>
+            </View>
+          ) : (
+            <PieChart
+              data={pieData}
+              radius={80}
+              innerRadius={0}
+              strokeWidth={2}
+              strokeColor={colors.background}
+              isAnimated
+              animationDuration={800}
+              showText
+              textColor={colors.text.primary}
+              textSize={12}
+              fontWeight="bold"
+              showTextBackground={false}
+            />
+          )}
         </View>
 
         {/* Macro breakdown with Total and Goal columns */}
@@ -210,7 +250,7 @@ const BaseMacrosTab = ({
                 style={{ color: colors.text.primary }}
                 className="text-sm font-semibold w-16 text-center"
               >
-                {macro.percentage.toFixed(0)}%
+                {Math.round(macro.percentage)}%
               </Text>
 
               <Text

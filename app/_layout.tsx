@@ -4,21 +4,13 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import {
-  Platform,
-  View,
-  ActivityIndicator,
-  Text,
-} from "react-native";
+import { Platform, View, ActivityIndicator, Text } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 
 import { useAppStore } from "@/stores/appStore";
-import {
-  findUserByServerId,
-  getActiveUser,
-} from "@/db/actions/userActions";
+import { findUserByServerId, getActiveUser } from "@/db/actions/userActions";
 import { seedFoodDatabase } from "@/db/actions/foodActions";
 import DatabaseProvider from "@/providers/DatabaseProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -31,8 +23,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isLoading } = useAppStore();
-  const [isNavigatorReady, setIsNavigatorReady] =
-    useState(false);
+  const [isNavigatorReady, setIsNavigatorReady] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -51,6 +42,21 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError, isAppReady]);
 
+  // Ensure splash is hidden even if onLayout isn't triggered early on some devices
+  useEffect(() => {
+    const maybeHide = async () => {
+      try {
+        if ((fontsLoaded || fontError) && isAppReady) {
+          await SplashScreen.hideAsync();
+          console.log("✅ Splash screen hidden via effect.");
+        }
+      } catch (e) {
+        console.warn("Splash hide error", e);
+      }
+    };
+    maybeHide();
+  }, [fontsLoaded, fontError, isAppReady]);
+
   useEffect(() => {
     if (Platform.OS === "android") {
       NavigationBar.setBackgroundColorAsync("#000000");
@@ -67,9 +73,7 @@ export default function RootLayout() {
   }, []);
 
   const showLoading =
-    (!fontsLoaded && !fontError) ||
-    !isNavigatorReady ||
-    !isAppReady;
+    (!fontsLoaded && !fontError) || !isNavigatorReady || !isAppReady;
 
   return (
     <ErrorBoundary>
@@ -110,10 +114,7 @@ export default function RootLayout() {
                 {/* Loading overlay - position it absolutely over everything */}
                 {showLoading && (
                   <View className="absolute inset-0 bg-black flex-1 justify-center items-center">
-                    <ActivityIndicator
-                      size="large"
-                      color="#10B981"
-                    />
+                    <ActivityIndicator size="large" color="#10B981" />
                     <Text className="text-white mt-4 text-center px-4">
                       {fontError
                         ? "Font loading failed, continuing..."
@@ -134,7 +135,7 @@ export default function RootLayout() {
                 <StatusBar
                   style="auto"
                   backgroundColor="transparent"
-                  translucent={true}
+                  translucent={false}
                 />
               </GestureHandlerRootView>
             </SafeAreaProvider>
