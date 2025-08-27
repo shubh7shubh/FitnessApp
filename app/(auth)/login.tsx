@@ -1,66 +1,114 @@
-import { COLORS } from "@/constants/theme";
-import { styles } from "@/styles/auth.styles";
-import { useSSO } from "@clerk/clerk-expo";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+} from "react-native";
+import { Stack } from "expo-router";
+import { supabase } from "@/lib/supabase";
+import { FontAwesome5 } from "@expo/vector-icons";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
-export default function login() {
-  const { startSSOFlow } = useSSO();
-  const router = useRouter();
+export default function LoginScreen() {
+  React.useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "175732569705-gon1hjqas375rq7fg1inj83juupi8405.apps.googleusercontent.com",
+    });
+  }, []);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  async function signInWithGoogle() {
+    setIsLoading(true);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_google",
+      // 1. Check if the device has Google Play Services installed (for Android).
+      await GoogleSignin.hasPlayServices();
+
+      // 2. Trigger the native Google Sign-In UI to get the user's ID token.
+      const signInResult = await GoogleSignin.signIn();
+      console.log("Sign-in result:", signInResult);
+      const { idToken } = await GoogleSignin.getTokens();
+
+      console.log("ID token:", idToken);
+
+      if (!idToken) {
+        throw new Error("Google Sign-In failed: No ID token was returned.");
+      }
+
+      // 3. Use the received ID token to sign in with Supabase.
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: idToken,
       });
 
-      if (setActive && createdSessionId) {
-        setActive({ session: createdSessionId });
-        router.replace("/(tabs)");
+      if (error) {
+        // If Supabase returns an error, throw it to be caught below.
+        throw error;
       }
-    } catch (error) {
-      console.error("OAuth error:", error);
+
+      // If we reach here, the sign-in was successful.
+      // The `onAuthStateChange` listener in your RootLayout will now take over
+      // and handle the rest of the logic (checking WatermelonDB, navigation, etc.).
+      console.log("✅ Successfully signed in with Supabase:", data.user?.email);
+    } catch (error: any) {
+      if (error.code === "SIGN_IN_CANCELLED") {
+        // This is a normal event, not an error.
+        console.log("User cancelled the Google Sign-In flow.");
+      } else {
+        // For all other errors, show an alert.
+        console.error("Authentication error:", error);
+        Alert.alert(
+          "Sign-in Error",
+          "Could not sign in with Google. Please try again."
+        );
+      }
+    } finally {
+      // Always ensure the loading state is turned off.
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <View style={styles.container}>
-      {/* BRAND SECTION */}
-      <View style={styles.brandSection}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="leaf" size={32} color={COLORS.primary} />
-        </View>
-        <Text style={styles.appName}>fitness</Text>
-        <Text style={styles.tagline}>don't miss anything</Text>
-      </View>
+    <View className="flex-1 justify-center items-center bg-gray-900 p-6">
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#111827"
+        translucent={false}
+      />
 
-      {/* ILLUSTRATION */}
-      <View style={styles.illustrationContainer}>
-        <Image
-          source={require("../../assets/images/auth-bg-2.png")}
-          style={styles.illustration}
-          resizeMode="cover"
-        />
-      </View>
-
-      {/* LOGIN SECTION */}
-      <View style={styles.loginSection}>
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleGoogleSignIn}
-          activeOpacity={0.9}
-        >
-          <View style={styles.googleIconContainer}>
-            <Ionicons name="logo-google" size={20} color={COLORS.surface} />
-          </View>
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.termsText}>
-          By continuing, you agree to our Terms and Privacy Policy
+      <View className="items-center mb-16">
+        {/* You can add a logo here */}
+        <Text className="text-5xl font-extrabold text-white">FitNext</Text>
+        <Text className="text-lg text-gray-400 mt-3">
+          Your ultimate fitness partner
         </Text>
       </View>
+
+      <Pressable
+        onPress={signInWithGoogle}
+        disabled={isLoading}
+        className={`w-full flex-row items-center justify-center p-4 rounded-xl transition-all duration-200
+          ${isLoading ? "bg-gray-600" : "bg-white active:bg-gray-200"}`}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#1F2937" />
+        ) : (
+          <>
+            <FontAwesome5 name="google" size={20} color="#1F2937" />
+            <Text className="text-gray-900 text-lg font-bold ml-4">
+              Sign in with Google
+            </Text>
+          </>
+        )}
+      </Pressable>
+
+      <Text className="text-gray-600 text-xs text-center mt-8 px-4">
+        By continuing, you agree to our Terms of Service and Privacy Policy.
+      </Text>
     </View>
   );
 }

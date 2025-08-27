@@ -1,59 +1,260 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState, useEffect } from "react";
+import {
+  Tabs,
+  useRouter,
+  useNavigation,
+} from "expo-router";
+import {
+  MaterialCommunityIcons,
+  FontAwesome5,
+} from "@expo/vector-icons";
+import {
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 import { COLORS } from "@/constants/theme";
+import { QuickLogModal } from "@/modules/nutrition";
+import { useAppStore } from "@/stores/appStore";
+import { useHomeStore } from "@/modules/home/store/homeStore";
+import { database } from "@/db/index";
+import { DiaryEntry } from "@/db/models/DiaryEntry";
+import { Q } from "@nozbe/watermelondb";
+import { format } from "date-fns";
 
-export default function TabLayout() {
+export default function TabLayout(): React.ReactElement {
+  const [showQuickLogModal, setShowQuickLogModal] =
+    useState(false);
+  const colorScheme = useColorScheme() ?? "light";
+  const colors = COLORS[colorScheme];
+  const { currentUser } = useAppStore();
+  const { updateTodayStats } = useHomeStore();
+
+  // Global observer for diary entries to keep home store updated
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const todayString = format(new Date(), "yyyy-MM-dd");
+    const subscription = database.collections
+      .get<DiaryEntry>("diary_entries")
+      .query(
+        Q.where("date", todayString),
+        Q.where("user_id", currentUser.id)
+      )
+      .observe()
+      .subscribe((entries) => {
+        updateTodayStats(entries, currentUser);
+      });
+
+    return () => subscription.unsubscribe();
+  }, [currentUser, updateTodayStats]);
+
+  const CustomPlusButton = () => {
+    const router = useRouter();
+    const navigation = useNavigation();
+
+    const handlePress = () => {
+      const state = navigation.getState();
+      // The `state` object might be undefined when the navigator is not yet mounted.
+      if (!state) {
+        return;
+      }
+      const currentRoute = state.routes[state.index];
+
+      if (currentRoute.name === "feeds/index") {
+        router.push("/(tabs)/create");
+      } else {
+        setShowQuickLogModal(true);
+      }
+    };
+
+    return (
+      <View className="items-center justify-center -mt-6 px-1">
+        <TouchableOpacity
+          onPress={handlePress}
+          style={{
+            backgroundColor: colors.primary,
+            shadowColor: colors.primary,
+            shadowOffset: {
+              width: 0,
+              height: 6,
+            },
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            elevation: 12,
+            borderWidth: 4,
+            borderColor: colors.surface, // Use theme surface color for border
+          }}
+          className="w-16 h-16 rounded-full items-center justify-center"
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons
+            name="plus"
+            size={32}
+            color={colors.text.inverse} // Use theme inverse text color
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Enhanced tab icon component with smooth animations
+  const TabIcon = ({
+    name,
+    focused,
+    color,
+    size,
+    IconComponent = MaterialCommunityIcons,
+  }: {
+    name: any;
+    focused: boolean;
+    color: string;
+    size: number;
+    IconComponent?: any;
+  }) => (
+    <View className="items-center justify-center py-3 px-4 min-w-16">
+      <View
+        style={{
+          backgroundColor: focused
+            ? `${colors.primary}${colorScheme === "dark" ? "20" : "15"}`
+            : "transparent",
+          transform: [{ scale: focused ? 1.05 : 1 }],
+        }}
+        className="w-12 h-10 rounded-3xl items-center justify-center"
+      >
+        <IconComponent
+          name={name}
+          size={focused ? 25 : 24}
+          color={focused ? colors.primary : color}
+          style={{
+            opacity: focused ? 1 : 0.6,
+          }}
+        />
+      </View>
+      {focused && (
+        <View
+          style={{
+            backgroundColor: colors.primary,
+            marginTop: 4,
+          }}
+          className="w-1 h-1 rounded-full"
+        />
+      )}
+    </View>
+  );
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarShowLabel: false,
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.grey,
-        tabBarStyle: {
-          backgroundColor: "black",
-          borderTopWidth: 0,
-          position: "absolute",
-          elevation: 0,
-          height: 40,
-          paddingBottom: 8,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
+    <>
+      <Tabs
+        screenOptions={{
+          tabBarShowLabel: false,
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor:
+            colorScheme === "dark"
+              ? colors.text.muted
+              : colors.text.secondary,
+          tabBarStyle: {
+            backgroundColor: colors.surface, // Use theme surface color
+            borderTopWidth: 0,
+            borderTopColor: colors.border, // Use theme border color
+            position: "absolute",
+            elevation: colorScheme === "dark" ? 0 : 8,
+            shadowColor:
+              colorScheme === "dark"
+                ? "transparent" // No shadow in dark mode for clean look
+                : "#000",
+            shadowOffset: {
+              width: 0,
+              height: -2,
+            },
+            shadowOpacity: colorScheme === "dark" ? 0 : 0.1,
+            shadowRadius: 8,
+            height: 65,
+            paddingTop: 6,
+            paddingHorizontal: 8,
+            borderRadius: 0,
+          },
         }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "home" : "home-outline"}
+                focused={focused}
+                color={color}
+                size={size}
+                IconComponent={MaterialCommunityIcons}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="diary"
+          options={{
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "book" : "book-outline"}
+                focused={focused}
+                color={color}
+                size={size}
+                IconComponent={MaterialCommunityIcons}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="create"
+          options={{
+            tabBarButton: () => <CustomPlusButton />,
+          }}
+        />
+        <Tabs.Screen
+          name="progress"
+          options={{
+            headerShown: true,
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={
+                  focused
+                    ? "chart-line"
+                    : "chart-line-variant"
+                }
+                focused={focused}
+                color={color}
+                size={size}
+                IconComponent={MaterialCommunityIcons}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="feeds/index"
+          options={{
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={
+                  focused
+                    ? "account-group"
+                    : "account-group-outline"
+                }
+                focused={focused}
+                color={color}
+                size={size}
+                IconComponent={MaterialCommunityIcons}
+              />
+            ),
+          }}
+        />
+      </Tabs>
+
+      {/* Quick Log Modal */}
+      <QuickLogModal
+        visible={showQuickLogModal}
+        onClose={() => setShowQuickLogModal(false)}
       />
-      <Tabs.Screen
-        name="bookmarks"
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="bookmark" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          tabBarIcon: ({ size }) => (
-            <Ionicons name="add-circle" size={size} color={COLORS.primary} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="heart" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    </>
   );
 }
