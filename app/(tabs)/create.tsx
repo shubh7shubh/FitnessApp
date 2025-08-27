@@ -1,182 +1,528 @@
-import { COLORS } from "@/constants/theme";
-import { styles } from "@/styles/create.styles";
-import { useUser } from "@clerk/clerk-expo";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
+  TextInput,
+  Alert,
+  Image,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   ScrollView,
-  TextInput,
+  useColorScheme,
+  StatusBar,
 } from "react-native";
-
-import { Image } from "expo-image";
-
+import { useRouter, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { decode } from "base64-arraybuffer";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // Add this import
+import { COLORS } from "@/constants/theme";
 
 export default function CreateScreen() {
   const router = useRouter();
-  const { user } = useUser();
+  const colorScheme = useColorScheme() ?? "light";
+  const colors = COLORS[colorScheme];
+  const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets(); // Add this hook
 
   const [caption, setCaption] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSharing, setIsSharing] = useState(false);
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
+    const result =
+      await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permissionResult =
+      await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert(
+        "Permission Required",
+        "Camera permission is required to take photos."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      base64: true,
     });
 
-    if (!result.canceled) setSelectedImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0]);
+    }
   };
 
-  const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
-  const createPost = useMutation(api.posts.createPost);
+  const uploadImage = async (
+    imageAsset: ImagePicker.ImagePickerAsset
+  ) => {
+    if (!imageAsset.base64) {
+      throw new Error("No image data");
+    }
 
-  const handleShare = async () => {
-    if (!selectedImage) return;
+    const fileExt = imageAsset.uri.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `posts/${fileName}`;
 
-    try {
-      setIsSharing(true);
-      const uploadUrl = await generateUploadUrl();
-
-      const uploadResult = await FileSystem.uploadAsync(uploadUrl, selectedImage, {
-        httpMethod: "POST",
-        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        mimeType: "image/jpeg",
+    const { error: uploadError } = await supabase.storage
+      .from("posts")
+      .upload(filePath, decode(imageAsset.base64), {
+        contentType: `image/${fileExt}`,
       });
 
-      if (uploadResult.status !== 200) throw new Error("Upload failed");
+    if (uploadError) {
+      throw uploadError;
+    }
 
-      const { storageId } = JSON.parse(uploadResult.body);
-      await createPost({ storageId, caption });
+    const { data } = supabase.storage
+      .from("posts")
+      .getPublicUrl(filePath);
 
-      setSelectedImage(null);
+    return data.publicUrl;
+  };
+
+  const handleShare = async () => {
+    if (!caption.trim() && !selectedImage) {
+      Alert.alert(
+        "Nothing to Share",
+        "Please add a caption or select an image."
+      );
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      let imageUrl = null;
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+      }
+
+      const { data, error } =
+        await supabase.functions.invoke("create-post", {
+          body: {
+            content: caption.trim(),
+            image_url: imageUrl,
+          },
+        });
+
+      if (error) throw error;
+
+      // Reset form
       setCaption("");
+      setSelectedImage(null);
 
-      router.push("/(tabs)");
-    } catch (error) {
-      console.log("Error sharing post");
+      Alert.alert("Success", "Your post has been shared!", [
+        {
+          text: "OK",
+          onPress: () => router.push("/(tabs)"),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Error creating post:", error);
+      Alert.alert(
+        "Error",
+        "Failed to share your post. Please try again."
+      );
     } finally {
       setIsSharing(false);
     }
   };
 
-  if (!selectedImage) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={28} color={COLORS.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Post</Text>
-          <View style={{ width: 28 }} />
-        </View>
-
-        <TouchableOpacity style={styles.emptyImageContainer} onPress={pickImage}>
-          <Ionicons name="image-outline" size={48} color={COLORS.grey} />
-          <Text style={styles.emptyImageText}>Tap to select an image</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const removeImage = () => {
+    setSelectedImage(null);
+  };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
     >
-      <View style={styles.contentContainer}>
-        {/* HEADER */}
-        <View style={styles.header}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent={true}
+      />
+
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      {/* Header with proper safe area handling */}
+      <View
+        style={{
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          shadowColor: isDark ? "#000" : "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0.25 : 0.06,
+          shadowRadius: 8,
+          elevation: 4,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
+        >
           <TouchableOpacity
-            onPress={() => {
-              setSelectedImage(null);
-              setCaption("");
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 12,
+              backgroundColor: colors.surface,
             }}
-            disabled={isSharing}
           >
             <Ionicons
-              name="close-outline"
-              size={28}
-              color={isSharing ? COLORS.grey : COLORS.white}
+              name="close"
+              size={20}
+              color={colors.text.primary}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Post</Text>
+
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              color: colors.text.primary,
+            }}
+          >
+            Create Post
+          </Text>
+
           <TouchableOpacity
-            style={[styles.shareButton, isSharing && styles.shareButtonDisabled]}
-            disabled={isSharing || !selectedImage}
             onPress={handleShare}
+            disabled={
+              isSharing ||
+              (!caption.trim() && !selectedImage)
+            }
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+              backgroundColor:
+                (!caption.trim() && !selectedImage) ||
+                isSharing
+                  ? colors.surface
+                  : colors.primary,
+              opacity:
+                (!caption.trim() && !selectedImage) ||
+                isSharing
+                  ? 0.6
+                  : 1,
+            }}
           >
             {isSharing ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
+              <ActivityIndicator
+                size="small"
+                color="white"
+              />
             ) : (
-              <Text style={styles.shareText}>Share</Text>
+              <Text
+                style={{
+                  fontWeight: "600",
+                  color:
+                    !caption.trim() && !selectedImage
+                      ? colors.text.secondary
+                      : "white",
+                }}
+              >
+                Share
+              </Text>
             )}
           </TouchableOpacity>
         </View>
+      </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={
+          Platform.OS === "ios" ? "padding" : "height"
+        }
+      >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          bounces={false}
-          keyboardShouldPersistTaps="handled"
-          contentOffset={{ x: 0, y: 100 }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 20 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.content, isSharing && styles.contentDisabled]}>
-            {/* IMAGE SECTION */}
-            <View style={styles.imageSection}>
-              <Image
-                source={selectedImage}
-                style={styles.previewImage}
-                contentFit="cover"
-                transition={200}
-              />
-              <TouchableOpacity
-                style={styles.changeImageButton}
-                onPress={pickImage}
-                disabled={isSharing}
+          {/* Caption Input */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <TextInput
+              value={caption}
+              onChangeText={setCaption}
+              placeholder="What's on your mind? Share your fitness journey..."
+              placeholderTextColor={colors.text.secondary}
+              style={{
+                fontSize: 16,
+                lineHeight: 24,
+                minHeight: 96,
+                color: colors.text.primary,
+                textAlignVertical: "top",
+              }}
+              multiline
+              maxLength={500}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.text.secondary,
+                }}
               >
-                <Ionicons name="image-outline" size={20} color={COLORS.white} />
-                <Text style={styles.changeImageText}>Change</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* INPUT SECTION */}
-            <View style={styles.inputSection}>
-              <View style={styles.captionContainer}>
-                <Image
-                  source={user?.imageUrl}
-                  style={styles.userAvatar}
-                  contentFit="cover"
-                  transition={200}
-                />
-                <TextInput
-                  style={styles.captionInput}
-                  placeholder="Write a caption..."
-                  placeholderTextColor={COLORS.grey}
-                  multiline
-                  value={caption}
-                  onChangeText={setCaption}
-                  editable={!isSharing}
-                />
-              </View>
+                {caption.length}/500
+              </Text>
             </View>
           </View>
+
+          {/* Image Section */}
+          {selectedImage ? (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                overflow: "hidden",
+                marginBottom: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <View style={{ position: "relative" }}>
+                <Image
+                  source={{ uri: selectedImage.uri }}
+                  style={{ width: "100%", height: 320 }}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  onPress={removeImage}
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    right: 12,
+                    width: 32,
+                    height: 32,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 24,
+                marginBottom: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                alignItems: "center",
+              }}
+            >
+              <Ionicons
+                name="image-outline"
+                size={48}
+                color={colors.text.secondary}
+                style={{ marginBottom: 16 }}
+              />
+              <Text
+                style={{
+                  textAlign: "center",
+                  fontWeight: "600",
+                  marginBottom: 16,
+                  color: colors.text.primary,
+                }}
+              >
+                Add a photo to your post
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 12,
+                  width: "100%",
+                }}
+              >
+                <TouchableOpacity
+                  onPress={pickImage}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: isDark
+                      ? colors.surface
+                      : "#f8f9fa",
+                    alignItems: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name="images-outline"
+                      size={20}
+                      color={colors.text.secondary}
+                    />
+                    <Text
+                      style={{
+                        marginLeft: 8,
+                        fontWeight: "600",
+                        color: colors.text.primary,
+                      }}
+                    >
+                      Gallery
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={takePhoto}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: isDark
+                      ? colors.surface
+                      : "#f8f9fa",
+                    alignItems: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name="camera-outline"
+                      size={20}
+                      color={colors.text.secondary}
+                    />
+                    <Text
+                      style={{
+                        marginLeft: 8,
+                        fontWeight: "600",
+                        color: colors.text.primary,
+                      }}
+                    >
+                      Camera
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Tips Section */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Ionicons
+                name="bulb-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 14,
+                  fontWeight: "600",
+                  marginLeft: 8,
+                }}
+              >
+                Sharing Tips
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 14,
+                lineHeight: 20,
+                color: colors.text.secondary,
+              }}
+            >
+              • Share your workout achievements{"\n"}• Post
+              healthy meal ideas{"\n"}• Inspire others with
+              your progress{"\n"}• Ask questions and get
+              advice
+            </Text>
+          </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

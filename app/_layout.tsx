@@ -1,26 +1,62 @@
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import InitialLayout from "@/components/InitialLayout";
-import ClerkAndConvexProvider from "@/providers/ClerkAndConvexProvider";
-import { SplashScreen } from "expo-router";
+import "../global.css";
+import { useCallback, useEffect, useState } from "react";
 import { useFonts } from "expo-font";
-import { useCallback, useEffect } from "react";
-import * as NavigationBar from "expo-navigation-bar";
-import { Platform } from "react-native";
-
+import { SplashScreen, Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { Platform, View, ActivityIndicator, Text } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
 
+import { useAppStore } from "@/stores/appStore";
+import { findUserByServerId, getActiveUser } from "@/db/actions/userActions";
+import { seedFoodDatabase } from "@/db/actions/foodActions";
+import DatabaseProvider from "@/providers/DatabaseProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { supabase } from "@/lib/supabase";
+import { createUser } from "@/db/actions/userActions";
+
+// Keep the splash screen visible while we figure things out
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    "JetBrainsMono-Medium": require("../assets/fonts/JetBrainsMono-Medium.ttf"),
+  const { isLoading } = useAppStore();
+  const [isNavigatorReady, setIsNavigatorReady] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
+
+  const [fontsLoaded, fontError] = useFonts({
+    "Inter-Regular": require("../assets/fonts/Inter_18pt-Regular.ttf"),
+    "Inter-SemiBold": require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
+    "Inter-Bold": require("../assets/fonts/Inter_18pt-Bold.ttf"),
+    "Inter-Medium": require("../assets/fonts/Inter_18pt-SemiBold.ttf"), // Using SemiBold as Medium
   });
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) await SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsLoaded || fontError) {
+      if (isAppReady) {
+        await SplashScreen.hideAsync();
+        console.log("✅ Splash screen hidden.");
+      }
+    }
+  }, [fontsLoaded, fontError, isAppReady]);
 
-  // update the native navigation bar on Android.
+  // Ensure splash is hidden even if onLayout isn't triggered early on some devices
+  useEffect(() => {
+    const maybeHide = async () => {
+      try {
+        if ((fontsLoaded || fontError) && isAppReady) {
+          await SplashScreen.hideAsync();
+          console.log("✅ Splash screen hidden via effect.");
+        }
+      } catch (e) {
+        console.warn("Splash hide error", e);
+      }
+    };
+    maybeHide();
+  }, [fontsLoaded, fontError, isAppReady]);
+
   useEffect(() => {
     if (Platform.OS === "android") {
       NavigationBar.setBackgroundColorAsync("#000000");
@@ -28,14 +64,84 @@ export default function RootLayout() {
     }
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNavigatorReady(true);
+      setIsAppReady(true); // Mark app as ready after a short delay
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const showLoading =
+    (!fontsLoaded && !fontError) || !isNavigatorReady || !isAppReady;
+
   return (
-    <ClerkAndConvexProvider>
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#000" }} onLayout={onLayoutRootView}>
-          <InitialLayout />
-        </SafeAreaView>
-      </SafeAreaProvider>
-      <StatusBar style="light" />
-    </ClerkAndConvexProvider>
+    <ErrorBoundary>
+      <DatabaseProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <SafeAreaProvider>
+              <GestureHandlerRootView
+                style={{ flex: 1, backgroundColor: "black" }}
+                onLayout={onLayoutRootView}
+              >
+                {/* Main SafeAreaView for the entire app content */}
+
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="(auth)/login" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen
+                    name="(modals)"
+                    options={{ presentation: "modal" }}
+                  />
+                  <Stack.Screen name="nutrition/index" />
+                  <Stack.Screen name="nutrition/search" />
+                  <Stack.Screen name="products/[id]" />
+                  <Stack.Screen name="user" />
+
+                  <Stack.Screen
+                    name="blogs"
+                    options={{
+                      contentStyle: { paddingTop: 0 },
+                      animation: "fade", // Smoother transition
+                      presentation: "card",
+                    }}
+                  />
+                </Stack>
+
+                {/* Loading overlay - position it absolutely over everything */}
+                {showLoading && (
+                  <View className="absolute inset-0 bg-black flex-1 justify-center items-center">
+                    <ActivityIndicator size="large" color="#10B981" />
+                    <Text className="text-white mt-4 text-center px-4">
+                      {fontError
+                        ? "Font loading failed, continuing..."
+                        : !fontsLoaded
+                          ? "Loading fonts..."
+                          : !isNavigatorReady
+                            ? "Setting up navigation..."
+                            : "Starting FitNext..."}
+                    </Text>
+                    {fontError && (
+                      <Text className="text-red-400 mt-2 text-sm">
+                        Font Error: {fontError.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                {/* Global StatusBar from expo-status-bar */}
+                <StatusBar
+                  style="auto"
+                  backgroundColor="transparent"
+                  translucent={false}
+                />
+              </GestureHandlerRootView>
+            </SafeAreaProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </DatabaseProvider>
+    </ErrorBoundary>
   );
 }

@@ -1,0 +1,107 @@
+[
+  {
+    "id": "ex1",
+    "name": "Running",
+    "duration": 30,
+    "caloriesBurned": 320,
+    "type": "cardio"
+  },
+  {
+    "id": "ex2",
+    "name": "Push-ups",
+    "duration": 15,
+    "caloriesBurned": 85,
+    "type": "strength"
+  },
+  {
+    "id": "ex3",
+    "name": "Yoga Flow",
+    "duration": 45,
+    "caloriesBurned": 180,
+    "type": "flexibility"
+  },
+  {
+    "id": "ex4",
+    "name": "Cycling",
+    "duration": 40,
+    "caloriesBurned": 380,
+    "type": "cardio"
+  },
+  {
+    "id": "ex5",
+    "name": "Squats",
+    "duration": 20,
+    "caloriesBurned": 120,
+    "type": "strength"
+  },
+  {
+    "id": "ex6",
+    "name": "Swimming",
+    "duration": 35,
+    "caloriesBurned": 400,
+    "type": "cardio"
+  },
+  {
+    "id": "ex7",
+    "name": "Deadlifts",
+    "duration": 25,
+    "caloriesBurned": 150,
+    "type": "strength"
+  },
+  {
+    "id": "ex8",
+    "name": "Basketball",
+    "duration": 60,
+    "caloriesBurned": 480,
+    "type": "sports"
+  },
+  {
+    "id": "ex9",
+    "name": "Planks",
+    "duration": 10,
+    "caloriesBurned": 45,
+    "type": "strength"
+  },
+  {
+    "id": "ex10",
+    "name": "Stretching",
+    "duration": 15,
+    "caloriesBurned": 30,
+    "type": "flexibility"
+  },
+  {
+    "id": "ex11",
+    "name": "Tennis",
+    "duration": 45,
+    "caloriesBurned": 350,
+    "type": "sports"
+  },
+  {
+    "id": "ex12",
+    "name": "Bench Press",
+    "duration": 30,
+    "caloriesBurned": 180,
+    "type": "strength"
+  },
+  {
+    "id": "ex13",
+    "name": "Walking",
+    "duration": 45,
+    "caloriesBurned": 200,
+    "type": "cardio"
+  },
+  {
+    "id": "ex14",
+    "name": "Pilates",
+    "duration": 50,
+    "caloriesBurned": 220,
+    "type": "flexibility"
+  },
+  {
+    "id": "ex15",
+    "name": "Soccer",
+    "duration": 90,
+    "caloriesBurned": 600,
+    "type": "sports"
+  }
+]
