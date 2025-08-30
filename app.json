@@ -5,7 +5,6 @@
     },
     "name": "fitness-app",
     "slug": "fitness-app",
-    "owner": "nischay_23",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -59,7 +58,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "a068f3c3-5d6e-4679-a5c3-e7c592ba3b60"
+        "projectId": "168cf2eb-81ea-4d9b-9f96-fdee3b5dc921"
       }
     }
   }

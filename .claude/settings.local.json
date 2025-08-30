@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\\bin\\java\" -version)",
+      "Bash(set JAVA_HOME=\"C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\")",
+      "Bash(gradlew.bat:*)",
+      "Bash(set \"JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\")",
+      "Bash(cmd /c:*)",
+      "Bash(\"C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\\bin\\keytool.exe\" -list -v -keystore \"C:\\Users\\khobr\\Desktop\\startup\\Fitness App\\FAPP\\FitnessApp\\android\\app\\debug.keystore\" -alias androiddebugkey -storepass android -keypass android)",
+      "Bash(powershell:*)",
+      "Bash(npm run android:*)",
+      "WebFetch(domain:expo.dev)",
+      "Bash(npx expo start:*)",
+      "Bash(npx eas build:*)",
+      "Bash(npx expo prebuild:*)",
+      "Bash(copy:*)",
+      "Bash(npm start)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

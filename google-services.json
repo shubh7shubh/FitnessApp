@@ -12,7 +12,20 @@
           "package_name": "com.nischay23.fitnessapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "542017148278-dbhc6hv3ufh3q40hjcpditnspv4crfar.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nischay23.fitnessapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "542017148278-ikemudde0t4iujnafp7lrlicuvthupt4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDv3gN5ZYT76y9os3-hAGeYc2w7O3M1sYY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "542017148278-ikemudde0t4iujnafp7lrlicuvthupt4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
